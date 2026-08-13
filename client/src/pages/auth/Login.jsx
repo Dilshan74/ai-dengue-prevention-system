@@ -44,21 +44,23 @@ export default function Login() {
   };
 
   return (
-    <>
-      <h1 className="text-xl font-bold text-foreground">Sign In</h1>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Enter your details to access the system
-      </p>
+    <div className="fade-in">
+      <div className="text-center mb-8">
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Welcome Back</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Sign in to your account to continue
+        </p>
+      </div>
 
-      <div className="mt-6 flex border-b border-border">
+      <div className="mt-8 flex rounded-xl bg-secondary/50 p-1 mb-8">
         {ROLE_TABS.map((tab) => (
           <button
             key={tab.value}
             type="button"
             onClick={() => setRoleAndEmail(tab.value)}
-            className={`flex-1 pb-2 text-sm font-medium ${
+            className={`flex-1 rounded-lg py-2 text-sm font-medium transition-all duration-300 ${
               role === tab.value
-                ? "border-b-2 border-primary text-primary"
+                ? "bg-white text-primary shadow-sm dark:bg-slate-800"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
@@ -67,8 +69,8 @@ export default function Login() {
         ))}
       </div>
 
-      <form onSubmit={submit} className="mt-6 space-y-4">
-        <FormField label="Email" htmlFor="email" error={errors.email}>
+      <form onSubmit={submit} className="space-y-5">
+        <FormField label="Email Address" htmlFor="email" error={errors.email}>
           <Input
             id="email"
             type="email"
@@ -77,13 +79,14 @@ export default function Login() {
             value={values.email}
             onChange={onChange("email")}
             error={errors.email}
+            className="h-12 bg-white/50 focus:bg-white transition-colors"
           />
         </FormField>
 
         <FormField error={errors.password}>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mb-1">
             <Label htmlFor="password">Password</Label>
-            <Link to="/forgot-password" className="text-xs font-medium text-primary hover:underline">
+            <Link to="/forgot-password" className="text-sm font-medium text-primary hover:text-primary/80 transition-colors">
               Forgot password?
             </Link>
           </div>
@@ -95,27 +98,28 @@ export default function Login() {
             value={values.password}
             onChange={onChange("password")}
             error={errors.password}
+            className="h-12 bg-white/50 focus:bg-white transition-colors"
           />
         </FormField>
 
-        <div className="flex items-center gap-2">
-          <Checkbox id="remember" defaultChecked />
-          <Label htmlFor="remember" className="font-normal text-muted-foreground">
-            Remember me on this device
+        <div className="flex items-center gap-3 pt-2">
+          <Checkbox id="remember" defaultChecked className="h-5 w-5 rounded border-gray-300" />
+          <Label htmlFor="remember" className="font-medium text-sm text-foreground cursor-pointer">
+            Remember me for 30 days
           </Label>
         </div>
 
-        <Button type="submit" className="w-full mt-2">
-          Sign In
+        <Button type="submit" size="lg" className="w-full mt-6 shadow-lg shadow-primary/20">
+          Sign In to Dashboard
         </Button>
       </form>
 
-      <p className="mt-6 text-center text-sm text-muted-foreground">
+      <p className="mt-8 text-center text-sm text-muted-foreground">
         Don&apos;t have an account?{" "}
-        <Link to="/register" className="font-semibold text-primary hover:underline">
-          Register
+        <Link to="/register" className="font-semibold text-primary hover:text-primary/80 transition-colors">
+          Create an account
         </Link>
       </p>
-    </>
+    </div>
   );
 }

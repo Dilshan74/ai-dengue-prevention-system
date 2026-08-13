@@ -17,9 +17,9 @@ export default function AppRoutes() {
 
       <Route element={<AuthLayout />}>
         <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
       </Route>
-      <Route path="/register" element={<Register />} />
 
       {citizenRoutes}
       {phiRoutes}

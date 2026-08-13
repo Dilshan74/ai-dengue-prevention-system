@@ -1,5 +1,5 @@
 import { Link, NavLink } from "react-router-dom";
-import { LogOut } from "lucide-react";
+import { LogOut, ShieldCheck } from "lucide-react";
 import { APP_NAME } from "../../utils/constants";
 import useAuth from "../../hooks/useAuth";
 
@@ -16,17 +16,20 @@ export default function Sidebar({ role, items, onNavigate }) {
   const { logout } = useAuth();
 
   return (
-    <div className="flex h-full flex-col bg-white">
+    <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground shadow-2xl">
       {/* Logo / Brand */}
-      <div className="flex items-center gap-2 border-b border-border px-4 py-3">
+      <div className="flex items-center gap-3 border-b border-sidebar-border px-5 py-5 slide-in-right delay-100">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-teal-400 text-white shadow-lg shadow-teal-500/20">
+          <ShieldCheck className="h-6 w-6" />
+        </div>
         <div>
-          <div className="text-sm font-bold text-primary">{APP_NAME}</div>
-          <div className="text-xs text-muted-foreground">{ROLE_LABELS[role]}</div>
+          <div className="text-lg font-semibold text-white tracking-tight">{APP_NAME}</div>
+          <div className="text-xs font-medium text-teal-200 mt-0.5 tracking-wide">{ROLE_LABELS[role]}</div>
         </div>
       </div>
 
       {/* Nav items */}
-      <nav className="flex-1 overflow-y-auto px-2 py-2">
+      <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-1.5 slide-up delay-200">
         {items.map(({ to, label, icon: Icon, badge, end }) => (
           <NavLink
             key={to}
@@ -34,19 +37,19 @@ export default function Sidebar({ role, items, onNavigate }) {
             end={end}
             onClick={onNavigate}
             className={({ isActive }) =>
-              `flex items-center gap-2.5 rounded px-3 py-2 text-sm font-medium mb-0.5 ${
+              `group flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-300 ${
                 isActive
-                  ? "bg-teal-50 text-teal-700"
-                  : "text-muted-foreground hover:bg-slate-50 hover:text-foreground"
+                  ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-md shadow-black/10"
+                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-white"
               }`
             }
           >
             {({ isActive }) => (
               <>
-                <Icon className={`h-4 w-4 shrink-0 ${isActive ? "text-teal-700" : ""}`} />
+                <Icon className={`h-5 w-5 shrink-0 transition-transform duration-300 group-hover:scale-110 ${isActive ? "text-white" : "text-sidebar-foreground/70 group-hover:text-white"}`} />
                 <span className="flex-1 truncate">{label}</span>
                 {badge != null && (
-                  <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-red-100 px-1.5 text-[10px] font-bold text-red-700">
+                  <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1.5 text-xs font-medium text-white shadow-sm">
                     {badge}
                   </span>
                 )}
@@ -57,16 +60,16 @@ export default function Sidebar({ role, items, onNavigate }) {
       </nav>
 
       {/* Logout */}
-      <div className="border-t border-border px-2 py-2">
+      <div className="border-t border-sidebar-border p-4 slide-up delay-300">
         <Link
           to="/login"
           onClick={() => {
             logout();
             onNavigate?.();
           }}
-          className="flex items-center gap-2.5 rounded px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-slate-50 hover:text-foreground"
+          className="group flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-sidebar-foreground/70 transition-all duration-300 hover:bg-sidebar-accent/50 hover:text-white"
         >
-          <LogOut className="h-4 w-4" />
+          <LogOut className="h-5 w-5 transition-transform duration-300 group-hover:scale-110" />
           <span>Logout</span>
         </Link>
       </div>

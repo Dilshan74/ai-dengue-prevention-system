@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 @import "./assets/styles/animations.css";
 
@@ -34,35 +35,91 @@
 }
 
 :root {
-  --radius: 0.375rem;
+  --radius: 0.75rem;
 
-  /* Clean Healthcare color palette */
+  /* Premium Light Theme */
   --background: #f8fafc;
-  --foreground: #1e293b;
-  --card: #ffffff;
-  --card-foreground: #1e293b;
+  --foreground: #0f172a;
+  
+  /* Glass Card */
+  --card: rgba(255, 255, 255, 0.7);
+  --card-foreground: #0f172a;
+  
+  /* Original Primary */
   --primary: #0d9488;
   --primary-foreground: #ffffff;
-  --secondary: #f1f5f9;
-  --secondary-foreground: #475569;
+  
+  /* Sleek Secondary */
+  --secondary: #e2e8f0;
+  --secondary-foreground: #334155;
+  
   --muted: #f1f5f9;
   --muted-foreground: #64748b;
-  --accent: #0d9488;
+  
+  --accent: #8b5cf6; /* Violet 500 */
   --accent-foreground: #ffffff;
-  --destructive: #dc2626;
+  
+  --destructive: #ef4444;
   --destructive-foreground: #ffffff;
-  --success: #16a34a;
+  
+  --success: #10b981;
   --success-foreground: #ffffff;
+  
   --warning: #f59e0b;
-  --warning-foreground: #1e293b;
-  --border: #e2e8f0;
-  --input: #e2e8f0;
-  --ring: #0d9488;
-  --sidebar: #ffffff;
-  --sidebar-foreground: #1e293b;
-  --sidebar-accent: #f0fdfa;
-  --sidebar-accent-foreground: #0f766e;
-  --sidebar-border: #e2e8f0;
+  --warning-foreground: #ffffff;
+  
+  --border: rgba(226, 232, 240, 0.6);
+  --input: #cbd5e1;
+  --ring: rgba(13, 148, 136, 0.5);
+  
+  --sidebar: #042f2e; /* teal-950 */
+  --sidebar-foreground: #ffffff;
+  --sidebar-accent: #0f766e; /* teal-700 */
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #042f2e;
+}
+
+.dark {
+  /* Premium Dark Theme */
+  --background: #020617; /* Slate 950 */
+  --foreground: #f8fafc;
+  
+  /* Glass Card */
+  --card: rgba(15, 23, 42, 0.6);
+  --card-foreground: #f8fafc;
+  
+  /* Original Primary Dark */
+  --primary: #14b8a6; /* Teal 400 */
+  --primary-foreground: #020617;
+  
+  /* Sleek Secondary */
+  --secondary: #1e293b;
+  --secondary-foreground: #cbd5e1;
+  
+  --muted: #0f172a;
+  --muted-foreground: #94a3b8;
+  
+  --accent: #a78bfa; /* Violet 400 */
+  --accent-foreground: #020617;
+  
+  --destructive: #f87171;
+  --destructive-foreground: #020617;
+  
+  --success: #34d399;
+  --success-foreground: #020617;
+  
+  --warning: #fbbf24;
+  --warning-foreground: #020617;
+  
+  --border: rgba(51, 65, 85, 0.5);
+  --input: #334155;
+  --ring: rgba(20, 184, 166, 0.5);
+  
+  --sidebar: #020617; /* Slate 950 */
+  --sidebar-foreground: #f8fafc;
+  --sidebar-accent: rgba(20, 184, 166, 0.1);
+  --sidebar-accent-foreground: #14b8a6;
+  --sidebar-border: rgba(51, 65, 85, 0.5);
 }
 
 @layer base {
@@ -72,10 +129,34 @@
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
-    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 14px; /* Body Text: 14px */
+    font-weight: 400; /* Body Text: 400 */
+    line-height: 1.5; /* Body Text: 1.5 */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
 }
 
 @utility card-shadow {
-  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05), 0 0 3px rgba(0,0,0,0.02);
+}
+
+.dark .card-shadow {
+  box-shadow: 0 4px 25px -2px rgba(0, 0, 0, 0.4), 0 0 3px rgba(0,0,0,0.2);
+}
+
+@utility glass {
+  background: var(--color-card);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--color-border);
+}
+
+@utility glass-sidebar {
+  background: var(--color-sidebar);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-right: 1px solid var(--color-sidebar-border);
 }

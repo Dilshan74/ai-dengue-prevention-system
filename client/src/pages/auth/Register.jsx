@@ -45,11 +45,13 @@ export default function Register() {
   };
 
   return (
-    <>
-      <h1 className="text-xl font-bold text-foreground">Register</h1>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Create a new citizen account
-      </p>
+    <div className="fade-in">
+      <div className="text-center mb-8">
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Register</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Create a new citizen account
+        </p>
+      </div>
 
       <form onSubmit={submit} className="mt-6 space-y-4">
         <FormField label="Full Name" htmlFor="name" error={errors.name}>
@@ -132,6 +134,6 @@ export default function Register() {
           Sign in
         </Link>
       </p>
-    </>
+    </div>
   );
 }

@@ -5,22 +5,24 @@ export default function Card({ title, description, action, className, bodyClassN
   return (
     <div
       className={cn(
-        "rounded border border-border bg-white shadow-sm",
+        "rounded-2xl glass card-shadow transition-all duration-300 hover:shadow-xl hover:-translate-y-1 relative overflow-hidden group",
         className,
       )}
     >
+      <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-white/0 dark:from-white/5 dark:to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+      
       {(title || action) && (
-        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-b border-border">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-b border-border/50 relative z-10">
           <div className="min-w-0">
-            {title && <h3 className="text-sm font-semibold text-foreground">{title}</h3>}
+            {title && <h3 className="text-sm font-medium text-foreground tracking-tight">{title}</h3>}
             {description && (
-              <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
+              <p className="text-xs text-muted-foreground mt-1">{description}</p>
             )}
           </div>
           {action}
         </div>
       )}
-      <div className={cn("p-4", bodyClassName)}>{children}</div>
+      <div className={cn("p-5 relative z-10", bodyClassName)}>{children}</div>
     </div>
   );
 }
