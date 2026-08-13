@@ -136,7 +136,7 @@ export default function Home() {
                 Our streamlined workflow ensures that citizen reports are analyzed by AI and acted upon by health officials without delay.
               </p>
               <div className="space-y-6">
-                {STEPS.map((step, index) => (
+                {STEPS.map((step) => (
                   <div key={step.num} className="flex gap-4">
                     <div className="flex-shrink-0 mt-1">
                       <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary font-medium text-xs border border-primary/20">
