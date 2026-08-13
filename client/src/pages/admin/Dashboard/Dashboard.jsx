@@ -9,60 +9,61 @@ import {
 } from "lucide-react";
 import PageHeader from "../../../components/common/PageHeader";
 import StatCard from "../../../components/common/StatCard";
-import MonthlyAreaChart from "../../../components/charts/MonthlyAreaChart";
-import { MONTHLY } from "../../../utils/constants";
 
 const SYSTEM_HEALTH = [
-  ["API uptime", "99.98%", "text-success"],
-  ["AI model", "Operational", "text-success"],
-  ["Storage", "62% used", "text-warning"],
-  ["Queue", "12 pending", "text-info"],
+  ["API Status", "Operational", "text-green-700"],
+  ["AI Model", "Online", "text-green-700"],
+  ["Storage Space", "62% used", "text-amber-700"],
+  ["Pending Tasks", "12", "text-teal-700"],
 ];
 
 const ACTIVITY = [
-  "👤 12 new citizens registered",
-  "✅ PHI-203 completed 4 inspections",
-  "⚠️ New high-risk zone in Kaduwela",
-  "🧠 AI retrained · +0.4% accuracy",
+  "New user registration: Nimal P.",
+  "PHI-203 completed 4 inspections",
+  "Area flagged: Kaduwela",
+  "Daily backup completed",
 ];
 
 export default function Dashboard() {
   return (
     <>
-      <PageHeader title="System Overview" description="Everything that matters, at a glance." />
+      <PageHeader title="Admin Dashboard" description="System overview and current status." />
+      
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        <StatCard label="Total Users" value="12,480" delta="+382 this month" icon={Users} tint="primary" />
-        <StatCard label="Total PHIs" value={218} delta="+6 onboarded" icon={UserCog} tint="accent" />
-        <StatCard label="Total Reports" value="34,562" delta="+1,204 this month" icon={FileText} tint="success" />
-        <StatCard label="High Risk Areas" value={64} delta="+3 flagged" icon={AlertTriangle} tint="destructive" />
-        <StatCard label="AI Accuracy" value="93.4%" delta="+0.6% vs June" icon={Brain} tint="accent" />
-        <StatCard label="Resolved Cases" value="29,110" delta="84% resolution" icon={CheckCircle2} tint="success" />
+        <StatCard label="Total Users" value="1,248" icon={Users} tint="primary" />
+        <StatCard label="Active PHIs" value="28" icon={UserCog} tint="primary" />
+        <StatCard label="Total Reports" value="3,456" icon={FileText} tint="primary" />
+        <StatCard label="High Risk Areas" value="6" icon={AlertTriangle} tint="destructive" />
+        <StatCard label="Resolved Cases" value="2,911" icon={CheckCircle2} tint="success" />
+        <StatCard label="Pending Review" value="45" icon={Activity} tint="warning" />
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[2fr_1fr]">
-        <MonthlyAreaChart data={MONTHLY} />
-        <div className="space-y-6">
-          <div className="soft-shadow rounded-2xl border border-border bg-card p-5">
-            <h3 className="mb-3 flex items-center gap-2 font-semibold">
-              <Activity className="h-4 w-4 text-primary" /> System Health
-            </h3>
-            <div className="space-y-3 text-sm">
-              {SYSTEM_HEALTH.map(([label, value, tint]) => (
-                <div key={label} className="flex items-center justify-between">
-                  <span className="text-muted-foreground">{label}</span>
-                  <span className={`font-semibold ${tint}`}>{value}</span>
-                </div>
-              ))}
-            </div>
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+        <div className="rounded border border-border bg-white p-5 shadow-sm">
+          <h3 className="mb-4 text-sm font-semibold text-foreground">
+            System Health
+          </h3>
+          <div className="space-y-4 text-sm">
+            {SYSTEM_HEALTH.map(([label, value, tint]) => (
+              <div key={label} className="flex items-center justify-between border-b border-border pb-2 last:border-0 last:pb-0">
+                <span className="text-muted-foreground">{label}</span>
+                <span className={`font-medium ${tint}`}>{value}</span>
+              </div>
+            ))}
           </div>
-          <div className="soft-shadow rounded-2xl border border-border bg-card p-5">
-            <h3 className="mb-3 font-semibold">Recent Activity</h3>
-            <ul className="space-y-3 text-sm">
-              {ACTIVITY.map((entry) => (
-                <li key={entry}>{entry}</li>
-              ))}
-            </ul>
-          </div>
+        </div>
+        
+        <div className="rounded border border-border bg-white p-5 shadow-sm">
+          <h3 className="mb-4 text-sm font-semibold text-foreground">
+            Recent System Activity
+          </h3>
+          <ul className="space-y-3 text-sm text-muted-foreground">
+            {ACTIVITY.map((entry, index) => (
+              <li key={index} className="flex gap-2">
+                <span className="text-border">•</span> {entry}
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
     </>

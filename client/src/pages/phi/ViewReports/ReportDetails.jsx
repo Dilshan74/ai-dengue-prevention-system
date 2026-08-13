@@ -6,18 +6,19 @@ import Badge from "../../../components/common/Badge";
 import Button from "../../../components/common/Button";
 import EmptyState from "../../../components/common/EmptyState";
 import PageHeader from "../../../components/common/PageHeader";
-import ConfidenceBar from "../../../components/ai/ConfidenceBar";
 import {
-  DETECTED_OBJECTS,
   PHI_REPORTS,
-  RISK_TINT,
-  STATUS_TINT,
 } from "../../../utils/constants";
+
+const DETECTED_FACTORS = [
+  "Stagnant water in container",
+  "No cover on bucket",
+];
 
 export default function ReportDetails() {
   const { id } = useParams();
   const report = PHI_REPORTS.find((item) => item.id === id);
-  const [status, setStatus] = useState(report?.status);
+  const [, setStatus] = useState(report?.status);
 
   if (!report) {
     return (
@@ -46,29 +47,27 @@ export default function ReportDetails() {
       />
 
       <div className="grid gap-6 lg:grid-cols-[1.1fr_1fr]">
-        <div className="soft-shadow overflow-hidden rounded-2xl border border-border bg-card">
-          <div className="grid aspect-[4/3] place-items-center bg-gradient-to-br from-muted to-muted/60 text-7xl">
-            {report.image}
-          </div>
-          <div className="flex flex-wrap items-center gap-2 p-5">
-            <Badge className={RISK_TINT[report.risk]}>{report.risk} risk</Badge>
-            <Badge className={STATUS_TINT[status]}>{status}</Badge>
-            <Badge>{report.date}</Badge>
-          </div>
+        <div className="rounded border border-border bg-slate-100 flex items-center justify-center p-8 aspect-[4/3]">
+           <span className="text-muted-foreground text-sm">[ Image of suspected site ]</span>
         </div>
 
-        <div className="space-y-4">
-          <div className="soft-shadow rounded-2xl border border-border bg-card p-5">
-            <h3 className="mb-3 font-semibold">AI Detected Objects</h3>
-            <div className="space-y-3">
-              {DETECTED_OBJECTS.map((object) => (
-                <ConfidenceBar key={object.label} label={object.label} value={object.conf} />
-              ))}
+        <div className="space-y-6">
+          <div className="rounded border border-border bg-white p-6 shadow-sm">
+            <h3 className="mb-4 text-lg font-semibold border-b border-border pb-3">AI Detection Results</h3>
+            <div className="flex gap-2 mb-4">
+               <Badge variant={report.risk === "High" ? "destructive" : "warning"}>{report.risk} Risk</Badge>
+               <Badge variant="default">Confidence: 87%</Badge>
+            </div>
+            <div>
+              <span className="text-muted-foreground block mb-2 text-sm">Detected Risk Factors</span>
+              <ul className="list-disc pl-4 text-sm text-foreground">
+                {DETECTED_FACTORS.map(factor => <li key={factor}>{factor}</li>)}
+              </ul>
             </div>
           </div>
 
-          <div className="soft-shadow rounded-2xl border border-border bg-card p-5">
-            <h3 className="mb-3 font-semibold">Actions</h3>
+          <div className="rounded border border-border bg-white p-6 shadow-sm">
+            <h3 className="mb-4 text-lg font-semibold border-b border-border pb-3">Actions</h3>
             <div className="flex flex-wrap gap-2">
               <Button
                 onClick={() => {

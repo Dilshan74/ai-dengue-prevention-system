@@ -7,7 +7,6 @@ import {
   Droplets,
   FileText,
   MapPinned,
-  Sparkles,
   ThermometerSun,
   Upload,
 } from "lucide-react";
@@ -29,10 +28,10 @@ export default function Dashboard() {
   return (
     <>
       <PageHeader
-        title="Welcome back, Nimal 👋"
-        description="Here's what's happening in your area today."
+        title="Citizen Dashboard"
+        description="Report breeding sites and track local dengue risks."
         action={
-          <div className="flex flex-wrap gap-2">
+          <div className="flex gap-2">
             <Button as={Link} to="/citizen/map" variant="outline">
               <MapPinned className="h-4 w-4" /> Risk Map
             </Button>
@@ -44,93 +43,71 @@ export default function Dashboard() {
       />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Total Reports Submitted" value={12} delta="+2 this week" icon={FileText} tint="primary" />
-        <StatCard label="Pending Reports" value={3} delta="Awaiting review" icon={Clock} tint="warning" />
-        <StatCard label="Approved Reports" value={7} delta="+3 this month" icon={CheckCircle2} tint="success" />
-        <StatCard label="High Risk Areas Nearby" value={2} delta="Within 2 km" icon={AlertTriangle} tint="destructive" />
+        <StatCard label="My Reports" value={3} icon={FileText} tint="primary" />
+        <StatCard label="Pending" value={1} icon={Clock} tint="warning" />
+        <StatCard label="Resolved" value={2} icon={CheckCircle2} tint="success" />
+        <StatCard label="Local Risk" value="Low" icon={AlertTriangle} tint="primary" />
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
-        <div className="soft-shadow rounded-2xl border border-border bg-card p-5 lg:col-span-2">
-          <div className="mb-4 flex items-center justify-between">
-            <h3 className="text-lg font-semibold">Recent Activity</h3>
-            <Button as={Link} to="/citizen/track" variant="ghost" size="sm">
+        <div className="rounded border border-border bg-white p-5 shadow-sm lg:col-span-2">
+          <div className="mb-4 flex items-center justify-between border-b border-border pb-3">
+            <h3 className="text-sm font-semibold text-foreground">My Recent Reports</h3>
+            <Link to="/citizen/track" className="text-xs font-medium text-primary hover:underline">
               View all
-            </Button>
+            </Link>
           </div>
           <div className="space-y-3">
-            {CITIZEN_REPORTS.slice(0, 4).map((report) => (
+            {CITIZEN_REPORTS.slice(0, 3).map((report) => (
               <Link
                 key={report.id}
                 to={`/citizen/track/${report.id}`}
-                className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-xl border border-border bg-background p-3 hover:bg-muted/40"
+                className="flex items-center gap-3 rounded border border-border bg-slate-50 p-3 hover:bg-slate-100"
               >
-                <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-muted text-xl">
-                  {report.image}
-                </div>
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2 text-sm font-semibold">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 text-sm font-medium text-foreground">
                     <span>{report.id}</span>
-                    <Badge className={STATUS_TINT[report.status]}>{report.status}</Badge>
+                    <Badge variant={report.status === "Pending" ? "warning" : "success"}>
+                      {report.status}
+                    </Badge>
                   </div>
-                  <div className="truncate text-xs text-muted-foreground">
-                    {report.location} · {report.date}
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    {report.location} • {report.date}
                   </div>
                 </div>
-                <div className="text-right text-xs text-muted-foreground">{report.updated}</div>
+                <div className="text-xs text-muted-foreground">{report.updated}</div>
               </Link>
             ))}
           </div>
         </div>
 
         <div className="space-y-6">
-          <div className="soft-shadow rounded-2xl border border-border bg-gradient-to-br from-info/10 to-primary/10 p-5">
-            <div className="mb-3 flex items-center justify-between">
-              <h3 className="font-semibold">Today&apos;s Weather</h3>
-              <Cloud className="h-5 w-5 text-info" />
+          <div className="rounded border border-border bg-white p-5 shadow-sm">
+            <div className="mb-4 border-b border-border pb-3 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-foreground">Local Weather</h3>
+              <Cloud className="h-4 w-4 text-muted-foreground" />
             </div>
             <div className="flex items-end gap-3">
-              <div className="text-4xl font-bold">{WEATHER.temp}°</div>
-              <div className="pb-1">
-                <div className="text-sm font-medium">{WEATHER.condition}</div>
-                <div className="text-xs text-muted-foreground">{WEATHER.city}</div>
-              </div>
-            </div>
-            <div className="mt-4 grid grid-cols-2 gap-3 text-xs">
-              <div className="flex items-center gap-2">
-                <Droplets className="h-4 w-4 text-info" /> Humidity {WEATHER.humidity}%
-              </div>
-              <div className="flex items-center gap-2">
-                <ThermometerSun className="h-4 w-4 text-warning" /> Rain {WEATHER.rain}%
+              <div className="text-3xl font-bold text-foreground">{WEATHER.temp}°</div>
+              <div className="pb-1 text-sm text-muted-foreground">
+                <div>{WEATHER.condition}</div>
+                <div>{WEATHER.city}</div>
               </div>
             </div>
           </div>
 
-          <div className="soft-shadow rounded-2xl border border-border bg-card p-5">
-            <div className="mb-3 flex items-center justify-between">
-              <h3 className="font-semibold">Latest Notifications</h3>
-              <Button as={Link} to="/citizen/notifications" variant="ghost" size="sm">
+          <div className="rounded border border-border bg-white p-5 shadow-sm">
+            <div className="mb-4 border-b border-border pb-3 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-foreground">Notifications</h3>
+              <Link to="/citizen/notifications" className="text-xs font-medium text-primary hover:underline">
                 All
-              </Button>
+              </Link>
             </div>
-            <div className="space-y-2.5">
+            <div className="space-y-3">
               {notifications.slice(0, 3).map((notification) => (
-                <div key={notification.id} className="flex items-start gap-2.5 text-sm">
-                  <span
-                    className={
-                      notification.type === "warning"
-                        ? "mt-1 h-2 w-2 shrink-0 rounded-full bg-warning"
-                        : notification.type === "success"
-                          ? "mt-1 h-2 w-2 shrink-0 rounded-full bg-success"
-                          : "mt-1 h-2 w-2 shrink-0 rounded-full bg-info"
-                    }
-                  />
-                  <div className="min-w-0">
-                    <div className="font-medium">{notification.title}</div>
-                    <div className="truncate text-xs text-muted-foreground">
-                      {notification.body}
-                    </div>
-                  </div>
+                <div key={notification.id} className="text-sm">
+                  <div className="font-medium text-foreground">{notification.title}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">{notification.body}</div>
                 </div>
               ))}
             </div>
@@ -138,21 +115,15 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="soft-shadow mt-6 rounded-2xl border border-border bg-card p-5">
-        <div className="mb-3 flex items-center gap-2">
-          <Sparkles className="h-5 w-5 text-primary" />
-          <h3 className="font-semibold">Dengue Prevention Tips</h3>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-6 rounded border border-border bg-white p-5 shadow-sm">
+        <h3 className="mb-4 border-b border-border pb-3 text-sm font-semibold text-foreground">
+          Prevention Tips
+        </h3>
+        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 text-sm text-muted-foreground list-disc pl-4">
           {PREVENTION_TIPS.map((tip, index) => (
-            <div key={tip} className="rounded-xl border border-border bg-background p-4">
-              <div className="mb-2 grid h-7 w-7 place-items-center rounded-lg bg-primary/10 text-xs font-bold text-primary">
-                {index + 1}
-              </div>
-              <p className="text-sm text-muted-foreground">{tip}</p>
-            </div>
+            <li key={index}>{tip}</li>
           ))}
-        </div>
+        </ul>
       </div>
     </>
   );

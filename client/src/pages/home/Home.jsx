@@ -1,53 +1,38 @@
 import { Link } from "react-router-dom";
-import {
-  Activity,
-  ArrowRight,
-  MapPinned,
-  ScanEye,
-} from "lucide-react";
-import Button from "../../components/common/Button";
 import Navbar from "../../components/layout/Navbar";
 import Footer from "../../components/layout/Footer";
 
 const NAV_LINKS = [
   { href: "#features", label: "Features" },
   { href: "#how", label: "How it works" },
-  { href: "#roles", label: "For everyone" },
-];
-
-const STATS = [
-  { value: "12,480", label: "Reports processed" },
-  { value: "93.4%", label: "AI accuracy" },
-  { value: "218", label: "PHIs onboarded" },
-  { value: "64", label: "High-risk zones" },
 ];
 
 const ROLE_CARDS = [
   {
-    icon: ScanEye,
     title: "Citizens",
-    body: "Snap a photo of stagnant water. Our AI classifies the risk in seconds and routes it to the right inspector.",
+    body: "Upload a photo of a suspected mosquito breeding site. Our system analyses the risk and routes it to your local inspector.",
     cta: "Report a site",
+    to: "/register",
   },
   {
-    icon: Activity,
-    title: "PHIs",
-    body: "Review AI predictions, accept or reject reports, schedule visits, and upload before/after inspection evidence.",
-    cta: "Manage reports",
+    title: "Public Health Inspectors",
+    body: "Review submitted reports, accept or reject them, schedule site visits, and upload inspection evidence.",
+    cta: "Go to dashboard",
+    to: "/login",
   },
   {
-    icon: MapPinned,
     title: "Administrators",
-    body: "Oversee users, PHIs, and areas. Track AI accuracy, generate monthly reports, and monitor system health.",
-    cta: "Open admin",
+    body: "Manage users, PHI assignments, and areas. View monthly reports and monitor system activity.",
+    cta: "Admin panel",
+    to: "/login",
   },
 ];
 
 const STEPS = [
-  "Citizen uploads a photo of suspected breeding site.",
-  "AI analyses the image, extracts risk level and detected objects.",
-  "PHI reviews, accepts or rejects, and schedules an inspection.",
-  "Admin monitors accuracy, resolved cases, and area-level trends.",
+  { num: 1, text: "Citizen uploads a photo of a suspected breeding site." },
+  { num: 2, text: "The AI model analyses the image and assigns a risk level." },
+  { num: 3, text: "The report is sent to the assigned PHI for review." },
+  { num: 4, text: "PHI inspects the site and updates the status." },
 ];
 
 export default function Home() {
@@ -55,95 +40,74 @@ export default function Home() {
     <div className="min-h-screen bg-background">
       <Navbar links={NAV_LINKS} />
 
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,color-mix(in_oklab,var(--primary)_18%,transparent),transparent_55%),radial-gradient(circle_at_80%_30%,color-mix(in_oklab,var(--accent)_18%,transparent),transparent_55%)]" />
-        <div className="relative mx-auto max-w-7xl px-4 py-20 md:px-8 md:py-28">
-          <div className="mx-auto max-w-3xl text-center">
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-background/70 px-4 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur">
-              <span className="h-2 w-2 rounded-full bg-primary" />
-              Empowering Public Health with AI
-            </div>
-            <h1 className="text-4xl font-bold leading-tight tracking-tight md:text-6xl">
-              Predict, report and prevent{" "}
-              <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                dengue outbreaks
-              </span>{" "}
-              — before they spread.
-            </h1>
-            <p className="mt-6 text-lg text-muted-foreground">
-              A unified platform where citizens report suspected breeding sites with a
-              photo, AI detects the risk, and Public Health Inspectors act in real time.
-            </p>
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-              <Button as={Link} to="/register" size="lg">
-                Create account <ArrowRight className="h-4 w-4" />
-              </Button>
-              <Button as={Link} to="/login" size="lg" variant="outline">
-                Sign in
-              </Button>
-            </div>
+      {/* Hero */}
+      <section className="border-b border-border bg-white py-12">
+        <div className="mx-auto max-w-3xl px-4 text-center">
+          <p className="text-xs font-semibold uppercase tracking-widest text-primary mb-3">
+            Ministry of Health — Dengue Prevention Initiative
+          </p>
+          <h1 className="text-3xl font-bold text-foreground md:text-4xl">
+            Dengue Breeding Site Reporting System
+          </h1>
+          <p className="mt-4 text-base text-muted-foreground max-w-xl mx-auto">
+            Citizens can report suspected breeding sites by uploading a photo. Our AI
+            model detects the risk level, and Public Health Inspectors take action.
+          </p>
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+            <Link
+              to="/register"
+              className="rounded bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-teal-700"
+            >
+              Create account
+            </Link>
+            <Link
+              to="/login"
+              className="rounded border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-slate-50"
+            >
+              Sign in
+            </Link>
           </div>
+        </div>
+      </section>
 
-          <div className="mx-auto mt-16 grid max-w-5xl grid-cols-2 gap-4 sm:grid-cols-4">
-            {STATS.map((stat) => (
+      {/* Features */}
+      <section id="features" className="py-12">
+        <div className="mx-auto max-w-5xl px-4">
+          <h2 className="text-xl font-bold text-foreground mb-6">Who is this for?</h2>
+          <div className="grid gap-4 md:grid-cols-3">
+            {ROLE_CARDS.map((card) => (
               <div
-                key={stat.label}
-                className="soft-shadow rounded-2xl border border-border bg-card p-4 text-center"
+                key={card.title}
+                className="rounded border border-border bg-white p-4 shadow-sm"
               >
-                <div className="text-2xl font-bold tracking-tight">{stat.value}</div>
-                <div className="text-xs text-muted-foreground">{stat.label}</div>
+                <h3 className="font-semibold text-foreground mb-2">{card.title}</h3>
+                <p className="text-sm text-muted-foreground mb-4">{card.body}</p>
+                <Link
+                  to={card.to}
+                  className="text-sm font-medium text-primary hover:underline"
+                >
+                  {card.cta} →
+                </Link>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      <section id="features" className="mx-auto max-w-7xl px-4 py-16 md:px-8">
-        <div className="mb-10 text-center">
-          <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
-            Built for every stakeholder
-          </h2>
-          <p className="mt-2 text-muted-foreground">
-            From citizens to administrators — one platform, three connected experiences.
-          </p>
-        </div>
-        <div id="roles" className="grid gap-6 md:grid-cols-3">
-          {ROLE_CARDS.map((card) => (
-            <div
-              key={card.title}
-              className="soft-shadow rounded-2xl border border-border bg-card p-6 transition-transform hover:-translate-y-1"
-            >
-              <div className="mb-4 grid h-12 w-12 place-items-center rounded-xl bg-primary/10 text-primary">
-                <card.icon className="h-6 w-6" />
-              </div>
-              <h3 className="text-xl font-semibold">{card.title}</h3>
-              <p className="mt-2 text-sm text-muted-foreground">{card.body}</p>
-              <Link
-                to="/login"
-                className="mt-4 inline-flex items-center text-sm font-medium text-primary hover:underline"
-              >
-                {card.cta} <ArrowRight className="ml-1 h-3.5 w-3.5" />
-              </Link>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section id="how" className="border-t border-border bg-muted/30 py-16">
-        <div className="mx-auto max-w-7xl px-4 md:px-8">
-          <div className="mb-10 text-center">
-            <h2 className="text-3xl font-bold tracking-tight md:text-4xl">How it works</h2>
-          </div>
-          <div className="grid gap-6 md:grid-cols-4">
-            {STEPS.map((step, index) => (
+      {/* How it works */}
+      <section id="how" className="border-t border-border bg-white py-12">
+        <div className="mx-auto max-w-5xl px-4">
+          <h2 className="text-xl font-bold text-foreground mb-6">How it works</h2>
+          <div className="grid gap-4 md:grid-cols-4">
+            {STEPS.map((step) => (
               <div
-                key={step}
-                className="soft-shadow rounded-2xl border border-border bg-card p-5"
+                key={step.num}
+                className="rounded border border-border bg-background p-4"
               >
-                <div className="mb-3 grid h-8 w-8 place-items-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
-                  {index + 1}
+                <div className="mb-2 flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-bold text-white">
+                  {step.num}
                 </div>
-                <p className="text-sm text-muted-foreground">{step}</p>
+                <p className="text-sm text-muted-foreground">{step.text}</p>
               </div>
             ))}
           </div>

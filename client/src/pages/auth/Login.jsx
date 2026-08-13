@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowRight, Eye, EyeOff, Lock, Mail } from "lucide-react";
+import { Lock, Mail } from "lucide-react";
 import { toast } from "sonner";
 import Button from "../../components/common/Button";
 import { Checkbox, FormField, Input, Label } from "../../components/common/Field";
@@ -18,7 +18,6 @@ export default function Login() {
   const navigate = useNavigate();
   const { login } = useAuth();
   const [role, setRole] = useState(ROLES.CITIZEN);
-  const [showPassword, setShowPassword] = useState(false);
   const [values, setValues] = useState({ email: "citizen@dengueguard.lk", password: "demo1234" });
   const [errors, setErrors] = useState({});
 
@@ -46,22 +45,22 @@ export default function Login() {
 
   return (
     <>
-      <h1 className="text-3xl font-bold tracking-tight">Welcome back</h1>
-      <p className="mt-2 text-sm text-muted-foreground">
-        Sign in to continue to your dashboard
+      <h1 className="text-xl font-bold text-foreground">Sign In</h1>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Enter your details to access the system
       </p>
 
-      <div className="mt-6 grid grid-cols-3 gap-1 rounded-xl bg-muted p-1">
+      <div className="mt-6 flex border-b border-border">
         {ROLE_TABS.map((tab) => (
           <button
             key={tab.value}
             type="button"
             onClick={() => setRoleAndEmail(tab.value)}
-            className={
+            className={`flex-1 pb-2 text-sm font-medium ${
               role === tab.value
-                ? "rounded-lg bg-background px-3 py-2 text-sm font-semibold shadow-sm"
-                : "rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
-            }
+                ? "border-b-2 border-primary text-primary"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
           >
             {tab.label}
           </button>
@@ -88,26 +87,15 @@ export default function Login() {
               Forgot password?
             </Link>
           </div>
-          <div className="relative">
-            <Input
-              id="password"
-              type={showPassword ? "text" : "password"}
-              icon={Lock}
-              placeholder="••••••••"
-              className="pr-10"
-              value={values.password}
-              onChange={onChange("password")}
-              error={errors.password}
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword((value) => !value)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              aria-label={showPassword ? "Hide password" : "Show password"}
-            >
-              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            </button>
-          </div>
+          <Input
+            id="password"
+            type="password"
+            icon={Lock}
+            placeholder="••••••••"
+            value={values.password}
+            onChange={onChange("password")}
+            error={errors.password}
+          />
         </FormField>
 
         <div className="flex items-center gap-2">
@@ -117,15 +105,15 @@ export default function Login() {
           </Label>
         </div>
 
-        <Button type="submit" size="lg" className="w-full">
-          Sign in <ArrowRight className="h-4 w-4" />
+        <Button type="submit" className="w-full mt-2">
+          Sign In
         </Button>
       </form>
 
       <p className="mt-6 text-center text-sm text-muted-foreground">
         Don&apos;t have an account?{" "}
         <Link to="/register" className="font-semibold text-primary hover:underline">
-          Create one
+          Register
         </Link>
       </p>
     </>

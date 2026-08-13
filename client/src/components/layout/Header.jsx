@@ -1,79 +1,61 @@
 import { Link } from "react-router-dom";
-import { Bell, ChevronsLeft, ChevronsRight, Menu, Moon, Sun } from "lucide-react";
+import { Bell, Menu, Moon, Sun } from "lucide-react";
 import Avatar from "../common/Avatar";
-import Button from "../common/Button";
-import SearchBar from "../common/SearchBar";
 import useTheme from "../../hooks/useTheme";
 import useNotification from "../../hooks/useNotification";
+import useAuth from "../../hooks/useAuth";
 
-/** Dashboard top bar: sidebar toggles, search, theme, notifications, avatar. */
+/** Dashboard top bar */
 export default function Header({
   title,
-  subtitle,
   role,
-  collapsed,
-  onToggleCollapse,
   onOpenMobileNav,
 }) {
   const { isDark, toggleTheme } = useTheme();
   const { unreadCount } = useNotification();
-  const roleLabel = role === "phi" ? "PHI" : role.charAt(0).toUpperCase() + role.slice(1);
+  const { user } = useAuth();
+  const displayName = user?.name ?? (role === "phi" ? "PHI" : role.charAt(0).toUpperCase() + role.slice(1));
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur-lg md:px-6">
-      <Button
-        size="icon"
-        variant="ghost"
-        className="md:hidden"
+    <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-white px-4">
+      <button
+        type="button"
         aria-label="Open navigation"
+        className="rounded p-1.5 text-muted-foreground hover:bg-slate-100 md:hidden"
         onClick={onOpenMobileNav}
       >
         <Menu className="h-5 w-5" />
-      </Button>
-      <Button
-        size="icon"
-        variant="ghost"
-        className="hidden md:inline-flex"
-        aria-label="Toggle sidebar"
-        onClick={onToggleCollapse}
-      >
-        {collapsed ? (
-          <ChevronsRight className="h-5 w-5" />
-        ) : (
-          <ChevronsLeft className="h-5 w-5" />
-        )}
-      </Button>
+      </button>
 
-      <div className="min-w-0 flex-1">
-        <h1 className="truncate text-base font-semibold sm:text-lg">{title}</h1>
-        {subtitle && <p className="truncate text-xs text-muted-foreground">{subtitle}</p>}
+      <div className="flex-1">
+        <span className="text-sm font-semibold text-foreground">{title}</span>
       </div>
 
-      <SearchBar
-        placeholder="Search reports, areas…"
-        className="hidden w-72 lg:block"
-        inputClassName="h-9"
-      />
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
+          onClick={toggleTheme}
+          aria-label="Toggle theme"
+          className="rounded p-1.5 text-muted-foreground hover:bg-slate-100"
+        >
+          {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+        </button>
 
-      <Button size="icon" variant="ghost" onClick={toggleTheme} aria-label="Toggle theme">
-        {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-      </Button>
-      <Button
-        as={Link}
-        to={`/${role}/notifications`}
-        size="icon"
-        variant="ghost"
-        className="relative"
-        aria-label="Notifications"
-      >
-        <Bell className="h-5 w-5" />
-        {unreadCount > 0 && (
-          <span className="absolute right-1.5 top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
-            {unreadCount}
-          </span>
-        )}
-      </Button>
-      <Avatar name={roleLabel} className="h-9 w-9" />
+        <Link
+          to={`/${role}/notifications`}
+          className="relative rounded p-1.5 text-muted-foreground hover:bg-slate-100"
+          aria-label="Notifications"
+        >
+          <Bell className="h-4 w-4" />
+          {unreadCount > 0 && (
+            <span className="absolute right-1 top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-destructive text-[9px] font-bold text-white">
+              {unreadCount}
+            </span>
+          )}
+        </Link>
+
+        <Avatar name={displayName} className="ml-1 h-7 w-7" />
+      </div>
     </header>
   );
 }

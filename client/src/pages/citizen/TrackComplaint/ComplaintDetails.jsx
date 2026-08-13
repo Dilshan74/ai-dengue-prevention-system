@@ -4,12 +4,8 @@ import Badge from "../../../components/common/Badge";
 import Button from "../../../components/common/Button";
 import EmptyState from "../../../components/common/EmptyState";
 import PageHeader from "../../../components/common/PageHeader";
-import ConfidenceBar from "../../../components/ai/ConfidenceBar";
 import {
   CITIZEN_REPORTS,
-  DETECTED_OBJECTS,
-  RISK_TINT,
-  STATUS_TINT,
 } from "../../../utils/constants";
 
 const TIMELINE = [
@@ -17,6 +13,11 @@ const TIMELINE = [
   { label: "AI analysis completed", detail: "Classified as a breeding site with 92% confidence." },
   { label: "Assigned to PHI", detail: "Routed to the inspector responsible for the ward." },
   { label: "Inspection", detail: "Site visit scheduled and findings recorded." },
+];
+
+const DETECTED_FACTORS = [
+  "Stagnant water in container",
+  "No cover on bucket",
 ];
 
 export default function ComplaintDetails() {
@@ -51,28 +52,21 @@ export default function ComplaintDetails() {
 
       <div className="grid gap-6 lg:grid-cols-[1.2fr_1fr]">
         <div className="space-y-6">
-          <div className="soft-shadow overflow-hidden rounded-2xl border border-border bg-card">
-            <div className="grid aspect-[4/3] place-items-center bg-gradient-to-br from-muted to-muted/60 text-7xl">
-              {report.image}
-            </div>
-            <div className="flex flex-wrap items-center gap-2 p-5">
-              <Badge className={STATUS_TINT[report.status]}>{report.status}</Badge>
-              <Badge className={RISK_TINT[report.risk]}>{report.risk} risk</Badge>
-              <Badge>Updated {report.updated}</Badge>
-            </div>
+          <div className="rounded border border-border bg-slate-100 flex items-center justify-center p-8 aspect-[4/3]">
+             <span className="text-muted-foreground text-sm">[ Image of suspected site ]</span>
           </div>
 
-          <div className="soft-shadow rounded-2xl border border-border bg-card p-5">
-            <h3 className="mb-4 font-semibold">Progress</h3>
+          <div className="rounded border border-border bg-white p-6 shadow-sm">
+            <h3 className="mb-4 text-lg font-semibold border-b border-border pb-3">Progress</h3>
             <ol className="space-y-4">
               {TIMELINE.map((step, index) => (
                 <li key={step.label} className="flex gap-3">
-                  <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-teal-100 text-xs font-bold text-teal-700">
                     {index + 1}
                   </div>
                   <div>
-                    <div className="text-sm font-semibold">{step.label}</div>
-                    <p className="text-sm text-muted-foreground">{step.detail}</p>
+                    <div className="text-sm font-semibold text-foreground">{step.label}</div>
+                    <p className="text-sm text-muted-foreground mt-0.5">{step.detail}</p>
                   </div>
                 </li>
               ))}
@@ -81,32 +75,33 @@ export default function ComplaintDetails() {
         </div>
 
         <div className="space-y-6">
-          <div className="soft-shadow rounded-2xl border border-border bg-card p-5">
-            <h3 className="mb-4 font-semibold">Details</h3>
-            <div className="grid gap-3">
+          <div className="rounded border border-border bg-white p-6 shadow-sm">
+            <h3 className="mb-4 text-lg font-semibold border-b border-border pb-3">Details</h3>
+            <div className="grid gap-3 text-sm">
               {[
                 { icon: MapPin, label: "Location", value: report.location },
                 { icon: User, label: "Assigned PHI", value: report.phi },
                 { icon: CalendarClock, label: "Submitted", value: report.date },
                 { icon: ShieldCheck, label: "Risk level", value: report.risk },
               ].map(({ icon: Icon, label, value }) => (
-                <div key={label} className="flex items-start gap-3 rounded-xl bg-muted/30 p-3">
-                  <Icon className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                <div key={label} className="flex items-start gap-3 border-b border-border pb-2 last:border-0 last:pb-0">
+                  <Icon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
                   <div className="min-w-0">
                     <div className="text-xs text-muted-foreground">{label}</div>
-                    <div className="truncate text-sm font-medium">{value}</div>
+                    <div className="truncate font-medium text-foreground">{value}</div>
                   </div>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="soft-shadow rounded-2xl border border-border bg-card p-5">
-            <h3 className="mb-3 font-semibold">AI Detected Objects</h3>
-            <div className="space-y-3">
-              {DETECTED_OBJECTS.map((object) => (
-                <ConfidenceBar key={object.label} label={object.label} value={object.conf} />
-              ))}
+          <div className="rounded border border-border bg-white p-6 shadow-sm">
+            <h3 className="mb-4 text-lg font-semibold border-b border-border pb-3">AI Analysis Results</h3>
+            <div>
+              <span className="text-muted-foreground block mb-2 text-sm">Detected Risk Factors</span>
+              <ul className="list-disc pl-4 text-sm text-foreground">
+                {DETECTED_FACTORS.map(factor => <li key={factor}>{factor}</li>)}
+              </ul>
             </div>
           </div>
         </div>

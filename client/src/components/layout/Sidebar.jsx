@@ -1,48 +1,32 @@
 import { Link, NavLink } from "react-router-dom";
-import { LogOut, Shield } from "lucide-react";
-import { cn } from "../../utils/helpers";
-import Badge from "../common/Badge";
+import { LogOut } from "lucide-react";
 import { APP_NAME } from "../../utils/constants";
 import useAuth from "../../hooks/useAuth";
 
-const ROLE_META = {
-  citizen: { title: "Citizen Portal", accent: "from-primary/20 to-accent/10" },
-  phi: { title: "PHI Console", accent: "from-accent/20 to-primary/10" },
-  admin: { title: "Administrator", accent: "from-primary/25 to-accent/15" },
+const ROLE_LABELS = {
+  citizen: "Citizen Portal",
+  phi: "PHI Console",
+  admin: "Admin Panel",
 };
 
 /**
- * Role-aware navigation rail. `items: [{ to, label, icon, badge?, end? }]`
+ * Role-aware navigation sidebar. `items: [{ to, label, icon, badge?, end? }]`
  */
-export default function Sidebar({ role, items, collapsed = false, onNavigate }) {
-  const meta = ROLE_META[role];
+export default function Sidebar({ role, items, onNavigate }) {
   const { logout } = useAuth();
 
   return (
-    <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
-      <div
-        className={cn(
-          "flex items-center gap-3 border-b border-sidebar-border p-4",
-          collapsed && "justify-center px-2",
-        )}
-      >
-        <div
-          className={cn(
-            "grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-gradient-to-br shadow-sm",
-            meta.accent,
-          )}
-        >
-          <Shield className="h-5 w-5 text-primary" />
+    <div className="flex h-full flex-col bg-white">
+      {/* Logo / Brand */}
+      <div className="flex items-center gap-2 border-b border-border px-4 py-3">
+        <div>
+          <div className="text-sm font-bold text-primary">{APP_NAME}</div>
+          <div className="text-xs text-muted-foreground">{ROLE_LABELS[role]}</div>
         </div>
-        {!collapsed && (
-          <div className="min-w-0">
-            <div className="truncate text-sm font-bold">{APP_NAME}</div>
-            <div className="truncate text-xs text-muted-foreground">{meta.title}</div>
-          </div>
-        )}
       </div>
 
-      <nav className="flex-1 space-y-1 overflow-y-auto p-3">
+      {/* Nav items */}
+      <nav className="flex-1 overflow-y-auto px-2 py-2">
         {items.map(({ to, label, icon: Icon, badge, end }) => (
           <NavLink
             key={to}
@@ -50,21 +34,21 @@ export default function Sidebar({ role, items, collapsed = false, onNavigate }) 
             end={end}
             onClick={onNavigate}
             className={({ isActive }) =>
-              cn(
-                "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all",
+              `flex items-center gap-2.5 rounded px-3 py-2 text-sm font-medium mb-0.5 ${
                 isActive
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm"
-                  : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
-                collapsed && "justify-center px-2",
-              )
+                  ? "bg-teal-50 text-teal-700"
+                  : "text-muted-foreground hover:bg-slate-50 hover:text-foreground"
+              }`
             }
           >
             {({ isActive }) => (
               <>
-                <Icon className={cn("h-4 w-4 shrink-0", isActive && "text-primary")} />
-                {!collapsed && <span className="flex-1 truncate">{label}</span>}
-                {!collapsed && badge != null && (
-                  <Badge className="h-5 px-2 text-[10px]">{badge}</Badge>
+                <Icon className={`h-4 w-4 shrink-0 ${isActive ? "text-teal-700" : ""}`} />
+                <span className="flex-1 truncate">{label}</span>
+                {badge != null && (
+                  <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-red-100 px-1.5 text-[10px] font-bold text-red-700">
+                    {badge}
+                  </span>
                 )}
               </>
             )}
@@ -72,20 +56,18 @@ export default function Sidebar({ role, items, collapsed = false, onNavigate }) 
         ))}
       </nav>
 
-      <div className={cn("border-t border-sidebar-border p-3", collapsed && "px-2")}>
+      {/* Logout */}
+      <div className="border-t border-border px-2 py-2">
         <Link
           to="/login"
           onClick={() => {
             logout();
             onNavigate?.();
           }}
-          className={cn(
-            "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-            collapsed && "justify-center px-2",
-          )}
+          className="flex items-center gap-2.5 rounded px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-slate-50 hover:text-foreground"
         >
           <LogOut className="h-4 w-4" />
-          {!collapsed && <span>Logout</span>}
+          <span>Logout</span>
         </Link>
       </div>
     </div>
