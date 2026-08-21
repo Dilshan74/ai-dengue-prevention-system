@@ -110,7 +110,7 @@ export default function Home() {
           </div>
 
           <div className="grid md:grid-cols-2 gap-6 lg:gap-8">
-            {FEATURES.map((feature, i) => (
+            {FEATURES.map((feature) => (
               <div key={feature.title} className="group relative p-8 rounded-3xl glass border border-border/50 hover:border-primary/30 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1">
                 <div className={`absolute inset-0 bg-gradient-to-br ${feature.color} opacity-0 group-hover:opacity-5 transition-opacity duration-300 rounded-3xl`} />
                 <div className={`inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-br ${feature.color} text-white mb-5 shadow-lg`}>

@@ -27,6 +27,7 @@ if (env.nodeEnv !== "test") app.use(morgan("dev"));
 // Serve uploaded images (report photos, inspection photos, AI predict input)
 app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
 
+app.get("/", (req, res) => res.json({ message: "Welcome to DengueGuard AI API" }));
 app.get("/api/health", (req, res) => res.json({ status: "ok", time: new Date().toISOString() }));
 
 app.use("/api/auth", authRoutes);
