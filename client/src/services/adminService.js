@@ -21,6 +21,21 @@ export const adminService = {
   updateArea: (id, payload) =>
     request({ url: `/admin/areas/${id}`, method: "put", data: payload }),
   deleteArea: (id) => request({ url: `/admin/areas/${id}`, method: "delete" }),
+  // ---- Complaint / Report management ----
+  complaints: (params) => request({ url: "/admin/reports", params }),
+  complaint: (id) => request({ url: `/admin/reports/${id}` }),
+  assignPhi: (id, phiId, status, comments) =>
+    request({
+      url: `/admin/reports/${id}/assign`,
+      method: "patch",
+      data: { phiId, status, comments },
+    }),
+  updateReportStatus: (id, status, comments) =>
+    request({
+      url: `/admin/reports/${id}/status`,
+      method: "patch",
+      data: { status, comments },
+    }),
   statistics: (params) => request({ url: "/admin/statistics", params }),
   settings: () => request({ url: "/admin/settings" }),
   updateSettings: (payload) =>
@@ -28,3 +43,4 @@ export const adminService = {
 };
 
 export default adminService;
+

@@ -7,6 +7,7 @@ import { FormField, Input, Textarea } from "../../components/common/Field";
 import useAuth from "../../hooks/useAuth";
 import { ROLES, ROLE_HOME } from "../../utils/constants";
 import { rules, validate } from "../../utils/validators";
+import authService from "../../services/authService";
 
 const INITIAL = {
   name: "",
@@ -22,11 +23,12 @@ export default function Register() {
   const { login } = useAuth();
   const [values, setValues] = useState(INITIAL);
   const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
 
   const onChange = (field) => (event) =>
     setValues((current) => ({ ...current, [field]: event.target.value }));
 
-  const submit = (event) => {
+  const submit = async (event) => {
     event.preventDefault();
     const nextErrors = validate(values, {
       name: [rules.required("Enter your full name")],
@@ -39,9 +41,25 @@ export default function Register() {
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) return;
 
-    login({ email: values.email, name: values.name, role: ROLES.CITIZEN });
-    toast.success("Account created successfully");
-    navigate(ROLE_HOME[ROLES.CITIZEN]);
+    try {
+      setLoading(true);
+      const data = await authService.register({
+        name: values.name,
+        email: values.email,
+        mobile: values.mobile,
+        password: values.password,
+        address: values.address,
+      });
+      // data = { token, id, email, name, role }
+      login({ email: data.email, name: data.name, role: data.role ?? ROLES.CITIZEN, token: data.token });
+      toast.success("Account created successfully!");
+      navigate(ROLE_HOME[ROLES.CITIZEN]);
+    } catch (err) {
+      const msg = err?.response?.data?.message ?? "Registration failed. Please try again.";
+      toast.error(msg);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -123,8 +141,8 @@ export default function Register() {
           </div>
         </FormField>
 
-        <Button type="submit" className="w-full mt-2">
-          Register
+        <Button type="submit" className="w-full mt-2" disabled={loading}>
+          {loading ? "Creating Account..." : "Register"}
         </Button>
       </form>
 

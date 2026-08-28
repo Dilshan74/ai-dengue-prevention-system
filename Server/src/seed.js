@@ -1,14 +1,14 @@
 import bcrypt from "bcryptjs";
+import mongoose from "mongoose";
 import { env } from "./config/env.js";
-import {
-  usersStore,
-  reportsStore,
-  visitsStore,
-  areasStore,
-  notificationsStore,
-  predictionsStore,
-  settingsStore,
-} from "./data/stores.js";
+import connectDB from "./config/db.js";
+import User from "./models/user.js";
+import Report from "./models/report.js";
+import Visit from "./models/visit.js";
+import Area from "./models/area.js";
+import Notification from "./models/notification.js";
+import Prediction from "./models/prediction.js";
+import Setting from "./models/settings.js";
 import { nextId } from "./utils/helpers.js";
 
 async function hash(pw) {
@@ -16,10 +16,23 @@ async function hash(pw) {
 }
 
 async function seed() {
+  await connectDB();
+
+  // Clear existing data
+  await Promise.all([
+    User.deleteMany({}),
+    Report.deleteMany({}),
+    Visit.deleteMany({}),
+    Area.deleteMany({}),
+    Notification.deleteMany({}),
+    Prediction.deleteMany({}),
+    Setting.deleteMany({}),
+  ]);
+
   const pw = await hash(env.seedPassword);
 
   // --- Users (one demo account per role, matching Login.jsx's email pattern) ---
-  const users = [
+  const users = await User.insertMany([
     {
       id: nextId("U"),
       name: "Citizen Demo",
@@ -76,101 +89,94 @@ async function seed() {
       rating: 4.6,
       status: "Active",
     },
-  ];
-  usersStore.save(users);
+  ]);
 
   const phi1 = users.find((u) => u.email === "phi@dengueguard.lk");
   const phi2 = users.find((u) => u.email === "s.fernando@moh.lk");
   const citizen1 = users.find((u) => u.email === "citizen@dengueguard.lk");
 
   // --- Areas ---
-  const areas = [
+  await Area.insertMany([
     { id: "A-01", name: "Nugegoda", risk: "High", phi: phi1.name, phiId: phi1.id, reports: 82, x: 32, y: 45 },
     { id: "A-02", name: "Rajagiriya", risk: "Medium", phi: phi2.name, phiId: phi2.id, reports: 47, x: 55, y: 30 },
     { id: "A-03", name: "Maharagama", risk: "High", phi: phi1.name, phiId: phi1.id, reports: 91, x: 22, y: 68 },
     { id: "A-04", name: "Dehiwala", risk: "Low", phi: phi2.name, phiId: phi2.id, reports: 24, x: 68, y: 60 },
     { id: "A-05", name: "Kotte", risk: "Medium", phi: phi1.name, phiId: phi1.id, reports: 39, x: 78, y: 42 },
-  ];
-  areasStore.save(areas);
+  ]);
 
   // --- Reports ---
-  const reports = [
-    {
-      id: "DG-1042",
-      citizenId: citizen1.id,
-      citizenName: citizen1.name,
-      description: "Stagnant water in a discarded bucket near the drain.",
-      location: "Nugegoda, Ward 12",
-      address: "Nugegoda, Ward 12",
-      lat: 6.8721,
-      lng: 79.8890,
-      image: "🪣",
-      images: [],
-      status: "Under Review",
-      risk: "High",
-      phi: phi1.name,
-      phiId: phi1.id,
-      date: "2026-07-24",
-      updated: new Date().toISOString(),
-      comments: [],
-      history: [{ status: "Pending", date: "2026-07-24", comments: "Report submitted" }],
-    },
-    {
-      id: "DG-1039",
-      citizenId: citizen1.id,
-      citizenName: citizen1.name,
-      description: "Overgrown vegetation trapping rainwater in a flower pot.",
-      location: "Rajagiriya, Ward 7",
-      address: "Rajagiriya, Ward 7",
-      lat: 6.9091,
-      lng: 79.8952,
-      image: "🌱",
-      images: [],
-      status: "Accepted",
-      risk: "Medium",
-      phi: phi2.name,
-      phiId: phi2.id,
-      date: "2026-07-22",
-      updated: new Date().toISOString(),
-      comments: [],
-      history: [{ status: "Pending", date: "2026-07-22", comments: "Report submitted" }],
-    },
-  ];
-  reportsStore.save(reports);
+  const report1 = await Report.create({
+    id: "DG-1042",
+    citizenId: citizen1.id,
+    citizenName: citizen1.name,
+    description: "Stagnant water in a discarded bucket near the drain.",
+    location: "Nugegoda, Ward 12",
+    address: "Nugegoda, Ward 12",
+    lat: 6.8721,
+    lng: 79.889,
+    image: "🪣",
+    images: [],
+    status: "Under Review",
+    risk: "High",
+    phi: phi1.name,
+    phiId: phi1.id,
+    date: new Date("2026-07-24"),
+    updated: new Date(),
+    comments: [],
+    history: [{ status: "Pending", date: new Date("2026-07-24"), comments: "Report submitted" }],
+  });
+
+  await Report.create({
+    id: "DG-1039",
+    citizenId: citizen1.id,
+    citizenName: citizen1.name,
+    description: "Overgrown vegetation trapping rainwater in a flower pot.",
+    location: "Rajagiriya, Ward 7",
+    address: "Rajagiriya, Ward 7",
+    lat: 6.9091,
+    lng: 79.8952,
+    image: "🌱",
+    images: [],
+    status: "Accepted",
+    risk: "Medium",
+    phi: phi2.name,
+    phiId: phi2.id,
+    date: new Date("2026-07-22"),
+    updated: new Date(),
+    comments: [],
+    history: [{ status: "Pending", date: new Date("2026-07-22"), comments: "Report submitted" }],
+  });
 
   // --- Visits ---
-  const visits = [
-    {
-      id: nextId("V"),
-      reportId: "DG-1042",
-      phiId: phi1.id,
-      location: "Nugegoda, Ward 12",
-      scheduledDate: "2026-08-25",
-      status: "Scheduled",
-      checklist: {
-        "Water Present": false,
-        "Larvae Found": false,
-        "Area Cleaned": false,
-        "Chemical Applied": false,
-        "Public Educated": false,
-      },
-      photos: [],
-      notes: "",
+  const visit1 = await Visit.create({
+    id: nextId("V"),
+    reportId: report1.id,
+    phiId: phi1.id,
+    location: "Nugegoda, Ward 12",
+    scheduledDate: new Date("2026-08-25"),
+    status: "Scheduled",
+    checklist: {
+      waterPresent: false,
+      larvaeFound: false,
+      areaCleaned: false,
+      chemicalApplied: false,
+      publicEducated: false,
     },
-  ];
-  visitsStore.save(visits);
+    photos: [],
+    notes: "",
+  });
 
   // --- Notifications ---
-  const notifications = [
+  await Notification.insertMany([
     {
       id: nextId("N"),
       userId: citizen1.id,
       role: "citizen",
       type: "info",
       title: "Inspection Scheduled",
-      body: "PHI I. Perera will visit DG-1042 on Aug 25.",
+      body: `PHI ${phi1.name} will visit ${report1.id} on Aug 25.`,
       read: false,
-      createdAt: new Date().toISOString(),
+      createdAt: new Date(),
     },
     {
       id: nextId("N"),
@@ -180,21 +186,28 @@ async function seed() {
       title: "Overdue inspection",
       body: "DG-1031 inspection is overdue by 1 day.",
       read: false,
-      createdAt: new Date().toISOString(),
+      createdAt: new Date(),
     },
-  ];
-  notificationsStore.save(notifications);
+  ]);
 
-  // --- Predictions ---
-  predictionsStore.save([]);
-
-  settingsStore.set({});
+  // --- Settings ---
+  await Setting.create({
+    key: "main",
+    siteName: "DengueGuard AI",
+    supportEmail: "support@dengueguard.lk",
+    notifyOnNewReport: true,
+    notifyOnHighRisk: true,
+    autoAssignPhi: true,
+    maintenanceMode: false,
+  });
 
   console.log("✅ Seed complete.");
   console.log("Demo logins (password: %s):", env.seedPassword);
   console.log("  citizen@dengueguard.lk");
   console.log("  phi@dengueguard.lk");
   console.log("  admin@dengueguard.lk");
+
+  await mongoose.connection.close();
 }
 
 seed().catch((err) => {

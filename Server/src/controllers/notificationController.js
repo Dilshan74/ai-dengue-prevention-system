@@ -1,32 +1,47 @@
-import { notificationsStore } from "../data/stores.js";
+import Notification from "../models/notification.js";
 import { asyncHandler, paginate, ApiError } from "../utils/helpers.js";
-
-function scoped(user) {
-  return notificationsStore.filter((n) => n.userId === user.id || n.role === user.role);
-}
 
 export const list = asyncHandler(async (req, res) => {
   const { unread, page = 1, pageSize = 20 } = req.query;
-  let items = scoped(req.user);
-  if (unread === "true") items = items.filter((n) => !n.read);
-  items = [...items].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+  const query = {
+    $or: [{ userId: req.user.id }, { role: req.user.role }],
+  };
+  if (unread === "true") query.read = false;
+
+  const items = await Notification.find(query).sort({ createdAt: -1 }).lean();
   res.json(paginate(items, { page, pageSize }));
 });
 
 export const markRead = asyncHandler(async (req, res) => {
-  const notification = scoped(req.user).find((n) => n.id === req.params.id);
+  const query = {
+    id: req.params.id,
+    $or: [{ userId: req.user.id }, { role: req.user.role }],
+  };
+  const notification = await Notification.findOne(query).lean();
   if (!notification) throw new ApiError(404, "Notification not found");
-  const updated = notificationsStore.update((n) => n.id === notification.id, { read: true });
+
+  const updated = await Notification.findOneAndUpdate(
+    { id: notification.id },
+    { read: true },
+    { new: true }
+  ).lean();
   res.json(updated);
 });
 
 export const markAllRead = asyncHandler(async (req, res) => {
-  const mine = scoped(req.user);
-  mine.forEach((n) => notificationsStore.update((x) => x.id === n.id, { read: true }));
-  res.json({ success: true, count: mine.length });
+  const query = {
+    $or: [{ userId: req.user.id }, { role: req.user.role }],
+    read: false,
+  };
+  const result = await Notification.updateMany(query, { read: true });
+  res.json({ success: true, count: result.modifiedCount });
 });
 
 export const unreadCount = asyncHandler(async (req, res) => {
-  const count = scoped(req.user).filter((n) => !n.read).length;
+  const count = await Notification.countDocuments({
+    $or: [{ userId: req.user.id }, { role: req.user.role }],
+    read: false,
+  });
   res.json({ count });
 });

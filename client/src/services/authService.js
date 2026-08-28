@@ -9,8 +9,13 @@ export const authService = {
   me: () => request({ url: "/auth/me" }),
   forgotPassword: (email) =>
     request({ url: "/auth/forgot-password", method: "post", data: { email } }),
-  resetPassword: (payload) =>
-    request({ url: "/auth/reset-password", method: "post", data: payload }),
+  /**
+   * @param {string} token  – the raw reset token from the URL params
+   * @param {string} password – the new password
+   */
+  resetPassword: (token, password) =>
+    request({ url: `/auth/reset-password/${token}`, method: "post", data: { password } }),
 };
 
 export default authService;
+

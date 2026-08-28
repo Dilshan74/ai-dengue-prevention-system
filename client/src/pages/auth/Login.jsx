@@ -7,6 +7,7 @@ import { Checkbox, FormField, Input, Label } from "../../components/common/Field
 import useAuth from "../../hooks/useAuth";
 import { ROLES, ROLE_HOME } from "../../utils/constants";
 import { rules, validate } from "../../utils/validators";
+import authService from "../../services/authService";
 
 const ROLE_TABS = [
   { value: ROLES.CITIZEN, label: "Citizen" },
@@ -20,6 +21,7 @@ export default function Login() {
   const [role, setRole] = useState(ROLES.CITIZEN);
   const [values, setValues] = useState({ email: "citizen@dengueguard.lk", password: "demo1234" });
   const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
 
   const setRoleAndEmail = (nextRole) => {
     setRole(nextRole);
@@ -29,7 +31,7 @@ export default function Login() {
   const onChange = (field) => (event) =>
     setValues((current) => ({ ...current, [field]: event.target.value }));
 
-  const submit = (event) => {
+  const submit = async (event) => {
     event.preventDefault();
     const nextErrors = validate(values, {
       email: [rules.required(), rules.email()],
@@ -38,9 +40,19 @@ export default function Login() {
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) return;
 
-    login({ email: values.email, role });
-    toast.success(`Welcome back — signed in as ${role.toUpperCase()}`);
-    navigate(ROLE_HOME[role]);
+    try {
+      setLoading(true);
+      const data = await authService.login({ email: values.email, password: values.password });
+      // data = { token, id, email, name, role }
+      login({ email: data.email, name: data.name, role: data.role ?? role, token: data.token });
+      toast.success(`Welcome back, ${data.name}!`);
+      navigate(ROLE_HOME[data.role ?? role]);
+    } catch (err) {
+      const msg = err?.response?.data?.message ?? "Invalid email or password.";
+      toast.error(msg);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -109,8 +121,8 @@ export default function Login() {
           </Label>
         </div>
 
-        <Button type="submit" size="lg" className="w-full mt-6 shadow-lg shadow-primary/20">
-          Sign In to Dashboard
+        <Button type="submit" size="lg" className="w-full mt-6 shadow-lg shadow-primary/20" disabled={loading}>
+          {loading ? "Signing in..." : "Sign In to Dashboard"}
         </Button>
       </form>
 

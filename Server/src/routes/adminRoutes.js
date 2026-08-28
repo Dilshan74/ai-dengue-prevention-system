@@ -18,6 +18,12 @@ router.get("/phis", adminController.listPhis);
 router.post("/phis", adminController.createPhi);
 router.put("/phis/:phiId/area", adminController.assignArea);
 
+// ---- Complaint / Report management ----
+router.get("/reports", adminController.listReports);
+router.get("/reports/:id", adminController.getReport);
+router.patch("/reports/:id/assign", adminController.assignPhiToReport);
+router.patch("/reports/:id/status", adminController.adminUpdateStatus);
+
 router.get("/areas", adminController.listAreas);
 router.post("/areas", adminController.createArea);
 router.put("/areas/:id", adminController.updateArea);
@@ -28,3 +34,4 @@ router.get("/settings", adminController.getSettings);
 router.put("/settings", adminController.updateSettings);
 
 export default router;
+

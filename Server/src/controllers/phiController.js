@@ -1,10 +1,13 @@
-import { reportsStore, visitsStore, usersStore, notificationsStore } from "../data/stores.js";
+import Report from "../models/report.js";
+import Visit from "../models/visit.js";
+import User from "../models/user.js";
+import Notification from "../models/notification.js";
 import { asyncHandler, paginate, nextId, ApiError } from "../utils/helpers.js";
 import { uploadUrl } from "../middleware/upload.js";
 
 export const dashboard = asyncHandler(async (req, res) => {
-  const myReports = reportsStore.filter((r) => r.phiId === req.user.id);
-  const myVisits = visitsStore.filter((v) => v.phiId === req.user.id);
+  const myReports = await Report.find({ phiId: req.user.id }).lean();
+  const myVisits = await Visit.find({ phiId: req.user.id }).lean();
 
   const stats = {
     assigned: myReports.length,
@@ -23,22 +26,24 @@ export const dashboard = asyncHandler(async (req, res) => {
 export const listReports = asyncHandler(async (req, res) => {
   const { status, risk, search, page = 1, pageSize = 10 } = req.query;
 
-  let items = reportsStore.filter((r) => r.phiId === req.user.id);
-  if (status) items = items.filter((r) => r.status === status);
-  if (risk) items = items.filter((r) => r.risk === risk);
+  const query = { phiId: req.user.id };
+  if (status) query.status = status;
+  if (risk) query.risk = risk;
+
+  let items = await Report.find(query).sort({ date: -1 }).lean();
+
   if (search) {
     const q = String(search).toLowerCase();
     items = items.filter(
       (r) => r.id.toLowerCase().includes(q) || r.location.toLowerCase().includes(q),
     );
   }
-  items = [...items].sort((a, b) => new Date(b.date) - new Date(a.date));
 
   res.json(paginate(items, { page, pageSize }));
 });
 
 export const getReport = asyncHandler(async (req, res) => {
-  const report = reportsStore.find((r) => r.id === req.params.id && r.phiId === req.user.id);
+  const report = await Report.findOne({ id: req.params.id, phiId: req.user.id }).lean();
   if (!report) throw new ApiError(404, "Report not found");
   res.json(report);
 });
@@ -47,21 +52,19 @@ function addHistory(report, status, comments) {
   return {
     ...report,
     status,
-    updated: new Date().toISOString(),
-    history: [...(report.history || []), { status, date: new Date().toISOString(), comments: comments || "" }],
+    updated: new Date(),
+    history: [...(report.history || []), { status, date: new Date(), comments: comments || "" }],
   };
 }
 
 export const acceptReport = asyncHandler(async (req, res) => {
-  const report = reportsStore.find((r) => r.id === req.params.id && r.phiId === req.user.id);
+  const report = await Report.findOne({ id: req.params.id, phiId: req.user.id }).lean();
   if (!report) throw new ApiError(404, "Report not found");
 
-  const updated = reportsStore.replace(
-    (r) => r.id === report.id,
-    addHistory(report, "Accepted", req.body?.comments),
-  );
+  const next = addHistory(report, "Accepted", req.body?.comments);
+  const updated = await Report.findOneAndUpdate({ id: report.id }, next, { new: true }).lean();
 
-  notificationsStore.insert({
+  await Notification.create({
     id: nextId("N"),
     userId: report.citizenId,
     role: "citizen",
@@ -69,22 +72,20 @@ export const acceptReport = asyncHandler(async (req, res) => {
     title: "Report Accepted",
     body: `${report.id} was accepted by PHI ${req.user.name}.`,
     read: false,
-    createdAt: new Date().toISOString(),
+    createdAt: new Date(),
   });
 
   res.json(updated);
 });
 
 export const rejectReport = asyncHandler(async (req, res) => {
-  const report = reportsStore.find((r) => r.id === req.params.id && r.phiId === req.user.id);
+  const report = await Report.findOne({ id: req.params.id, phiId: req.user.id }).lean();
   if (!report) throw new ApiError(404, "Report not found");
 
-  const updated = reportsStore.replace(
-    (r) => r.id === report.id,
-    addHistory(report, "Rejected", req.body?.comments),
-  );
+  const next = addHistory(report, "Rejected", req.body?.comments);
+  const updated = await Report.findOneAndUpdate({ id: report.id }, next, { new: true }).lean();
 
-  notificationsStore.insert({
+  await Notification.create({
     id: nextId("N"),
     userId: report.citizenId,
     role: "citizen",
@@ -92,31 +93,29 @@ export const rejectReport = asyncHandler(async (req, res) => {
     title: "Report Rejected",
     body: `${report.id} was rejected: ${req.body?.comments || "No reason given"}`,
     read: false,
-    createdAt: new Date().toISOString(),
+    createdAt: new Date(),
   });
 
   res.json(updated);
 });
 
 export const listVisits = asyncHandler(async (req, res) => {
-  const items = visitsStore.filter((v) => v.phiId === req.user.id);
+  const items = await Visit.find({ phiId: req.user.id }).lean();
   res.json(items);
 });
 
 export const updateVisit = asyncHandler(async (req, res) => {
-  const visit = visitsStore.find((v) => v.id === req.params.id && v.phiId === req.user.id);
+  const visit = await Visit.findOne({ id: req.params.id, phiId: req.user.id }).lean();
   if (!visit) throw new ApiError(404, "Visit not found");
 
-  const updated = visitsStore.update((v) => v.id === visit.id, req.body);
+  const updated = await Visit.findOneAndUpdate({ id: visit.id }, req.body, { new: true }).lean();
 
   // If the checklist marks the site cleared, progress the linked report.
   if (req.body.status === "Completed") {
-    const report = reportsStore.find((r) => r.id === visit.reportId);
+    const report = await Report.findOne({ id: visit.reportId }).lean();
     if (report) {
-      reportsStore.replace(
-        (r) => r.id === report.id,
-        addHistory(report, "Inspection Completed", "Site visit completed"),
-      );
+      const next = addHistory(report, "Inspection Completed", "Site visit completed");
+      await Report.findOneAndUpdate({ id: report.id }, next);
     }
   }
 
@@ -124,13 +123,15 @@ export const updateVisit = asyncHandler(async (req, res) => {
 });
 
 export const uploadInspectionPhotos = asyncHandler(async (req, res) => {
-  const visit = visitsStore.find((v) => v.id === req.params.id && v.phiId === req.user.id);
+  const visit = await Visit.findOne({ id: req.params.id, phiId: req.user.id }).lean();
   if (!visit) throw new ApiError(404, "Visit not found");
 
   const urls = (req.files || []).map((f) => uploadUrl(f.filename));
-  const updated = visitsStore.update((v) => v.id === visit.id, {
-    photos: [...(visit.photos || []), ...urls],
-  });
+  const updated = await Visit.findOneAndUpdate(
+    { id: visit.id },
+    { photos: [...(visit.photos || []), ...urls] },
+    { new: true }
+  ).lean();
 
   res.json(updated);
 });
@@ -142,11 +143,12 @@ export const profile = asyncHandler(async (req, res) => {
 
 export const updateProfile = asyncHandler(async (req, res) => {
   const { name, mobile, area } = req.body;
-  const updated = usersStore.update((u) => u.id === req.user.id, {
-    ...(name && { name }),
-    ...(mobile && { mobile }),
-    ...(area && { area }),
-  });
+  const patch = {};
+  if (name) patch.name = name;
+  if (mobile) patch.mobile = mobile;
+  if (area) patch.area = area;
+
+  const updated = await User.findOneAndUpdate({ id: req.user.id }, patch, { new: true }).lean();
   const { passwordHash, ...rest } = updated; // eslint-disable-line no-unused-vars
   res.json(rest);
 });

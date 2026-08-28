@@ -1,9 +1,10 @@
-import { reportsStore, usersStore } from "../data/stores.js";
+import Report from "../models/report.js";
+import User from "../models/user.js";
 import { asyncHandler, nextReportId, paginate, ApiError } from "../utils/helpers.js";
 import { uploadUrl } from "../middleware/upload.js";
 
 export const dashboard = asyncHandler(async (req, res) => {
-  const myReports = reportsStore.filter((r) => r.citizenId === req.user.id);
+  const myReports = await Report.find({ citizenId: req.user.id }).lean();
 
   const stats = {
     totalReports: myReports.length,
@@ -33,8 +34,11 @@ export const dashboard = asyncHandler(async (req, res) => {
 export const listComplaints = asyncHandler(async (req, res) => {
   const { status, search, page = 1, pageSize = 10 } = req.query;
 
-  let items = reportsStore.filter((r) => r.citizenId === req.user.id);
-  if (status) items = items.filter((r) => r.status === status);
+  const query = { citizenId: req.user.id };
+  if (status) query.status = status;
+
+  let items = await Report.find(query).sort({ date: -1 }).lean();
+
   if (search) {
     const q = String(search).toLowerCase();
     items = items.filter(
@@ -44,13 +48,12 @@ export const listComplaints = asyncHandler(async (req, res) => {
         r.description?.toLowerCase().includes(q),
     );
   }
-  items = [...items].sort((a, b) => new Date(b.date) - new Date(a.date));
 
   res.json(paginate(items, { page, pageSize }));
 });
 
 export const getComplaint = asyncHandler(async (req, res) => {
-  const report = reportsStore.find((r) => r.id === req.params.id && r.citizenId === req.user.id);
+  const report = await Report.findOne({ id: req.params.id, citizenId: req.user.id }).lean();
   if (!report) throw new ApiError(404, "Report not found");
   res.json(report);
 });
@@ -63,7 +66,7 @@ export const createComplaint = asyncHandler(async (req, res) => {
 
   const images = (req.files || []).map((f) => uploadUrl(f.filename));
 
-  const report = {
+  const report = await Report.create({
     id: nextReportId(),
     citizenId: req.user.id,
     citizenName: req.user.name,
@@ -78,14 +81,13 @@ export const createComplaint = asyncHandler(async (req, res) => {
     risk: "Medium",
     phi: "—",
     phiId: null,
-    date: new Date().toISOString().slice(0, 10),
-    updated: new Date().toISOString(),
+    date: new Date(),
+    updated: new Date(),
     comments: [],
-    history: [{ status: "Pending", date: new Date().toISOString(), comments: "Report submitted" }],
-  };
+    history: [{ status: "Pending", date: new Date(), comments: "Report submitted" }],
+  });
 
-  reportsStore.insert(report);
-  res.status(201).json(report);
+  res.status(201).json(report.toObject());
 });
 
 export const profile = asyncHandler(async (req, res) => {
@@ -95,18 +97,21 @@ export const profile = asyncHandler(async (req, res) => {
 
 export const updateProfile = asyncHandler(async (req, res) => {
   const { name, mobile, address } = req.body;
-  const updated = usersStore.update((u) => u.id === req.user.id, {
-    ...(name && { name }),
-    ...(mobile && { mobile }),
-    ...(address && { address }),
-  });
+  const patch = {};
+  if (name) patch.name = name;
+  if (mobile) patch.mobile = mobile;
+  if (address) patch.address = address;
+
+  const updated = await User.findOneAndUpdate({ id: req.user.id }, patch, { new: true }).lean();
   const { passwordHash, ...rest } = updated; // eslint-disable-line no-unused-vars
   res.json(rest);
 });
 
 export const updateSettings = asyncHandler(async (req, res) => {
-  const updated = usersStore.update((u) => u.id === req.user.id, {
-    settings: { ...(req.user.settings || {}), ...req.body },
-  });
+  const updated = await User.findOneAndUpdate(
+    { id: req.user.id },
+    { settings: { ...(req.user.settings || {}), ...req.body } },
+    { new: true }
+  ).lean();
   res.json(updated.settings);
 });

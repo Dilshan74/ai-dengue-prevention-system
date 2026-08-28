@@ -1,15 +1,19 @@
-import { areasStore, reportsStore } from "../data/stores.js";
+import Area from "../models/area.js";
+import Report from "../models/report.js";
 import { asyncHandler } from "../utils/helpers.js";
 
 export const riskAreas = asyncHandler(async (req, res) => {
-  res.json(areasStore.all());
+  const areas = await Area.find().lean();
+  res.json(areas);
 });
 
 export const heatmap = asyncHandler(async (req, res) => {
-  const points = reportsStore
-    .all()
-    .filter((r) => r.lat != null && r.lng != null)
-    .map((r) => ({ lat: r.lat, lng: r.lng, weight: r.risk === "High" ? 3 : r.risk === "Medium" ? 2 : 1 }));
+  const reports = await Report.find({ lat: { $ne: null }, lng: { $ne: null } }).lean();
+  const points = reports.map((r) => ({
+    lat: r.lat,
+    lng: r.lng,
+    weight: r.risk === "High" ? 3 : r.risk === "Medium" ? 2 : 1,
+  }));
   res.json(points);
 });
 

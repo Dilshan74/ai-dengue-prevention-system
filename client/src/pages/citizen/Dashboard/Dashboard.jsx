@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Camera,
@@ -13,16 +14,29 @@ import {
 import Button from "../../../components/common/Button";
 import PageHeader from "../../../components/common/PageHeader";
 import Card from "../../../components/common/Card";
-import {
-  PREVENTION_TIPS,
-  WEATHER,
-} from "../../../utils/constants";
+import { PREVENTION_TIPS, WEATHER } from "../../../utils/constants";
+import citizenService from "../../../services/citizenService";
+import useAuth from "../../../hooks/useAuth";
 
 export default function Dashboard() {
+  const { user } = useAuth();
+  const [stats, setStats] = useState({ totalReports: 0, pending: 0, resolved: 0, highRisk: 0 });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    citizenService
+      .dashboard()
+      .then((data) => {
+        if (data?.stats) setStats(data.stats);
+      })
+      .catch(() => {}) // silently fail — user still sees zeros
+      .finally(() => setLoading(false));
+  }, []);
+
   return (
     <div className="fade-in">
       <PageHeader
-        title="Citizen Dashboard"
+        title={`Welcome, ${user?.name ?? "Citizen"}`}
         description="AI-Based Dengue Prevention & Early Warning System"
       />
 
@@ -32,7 +46,9 @@ export default function Dashboard() {
           <div className="flex items-center justify-between">
             <div>
               <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Reports Submitted</div>
-              <div className="mt-2 text-xl md:text-2xl font-bold text-foreground">12</div>
+              <div className="mt-2 text-xl md:text-2xl font-bold text-foreground">
+                {loading ? "—" : stats.totalReports}
+              </div>
             </div>
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-100/50 text-cyan-600 dark:bg-cyan-900/30 dark:text-cyan-400">
               <FileText className="h-6 w-6" />
@@ -43,8 +59,10 @@ export default function Dashboard() {
         <Card className="border-t-4 border-t-amber-500 delay-200 slide-up">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Under Review</div>
-              <div className="mt-2 text-xl md:text-2xl font-bold text-foreground">3</div>
+              <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Pending</div>
+              <div className="mt-2 text-xl md:text-2xl font-bold text-foreground">
+                {loading ? "—" : stats.pending}
+              </div>
             </div>
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-100/50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400">
               <Search className="h-6 w-6" />
@@ -55,8 +73,10 @@ export default function Dashboard() {
         <Card className="border-t-4 border-t-blue-500 delay-300 slide-up">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Verified</div>
-              <div className="mt-2 text-xl md:text-2xl font-bold text-foreground">6</div>
+              <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">High Risk</div>
+              <div className="mt-2 text-xl md:text-2xl font-bold text-foreground">
+                {loading ? "—" : stats.highRisk}
+              </div>
             </div>
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-100/50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
               <FileText className="h-6 w-6" />
@@ -68,7 +88,9 @@ export default function Dashboard() {
           <div className="flex items-center justify-between">
             <div>
               <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Resolved</div>
-              <div className="mt-2 text-xl md:text-2xl font-bold text-foreground">5</div>
+              <div className="mt-2 text-xl md:text-2xl font-bold text-foreground">
+                {loading ? "—" : stats.resolved}
+              </div>
             </div>
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100/50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400">
               <CheckCircle2 className="h-6 w-6" />
@@ -83,7 +105,7 @@ export default function Dashboard() {
         <div className="flex flex-col justify-center rounded-2xl border-none bg-gradient-to-br from-primary to-cyan-600 p-8 shadow-xl shadow-cyan-500/20 text-white relative overflow-hidden slide-in-right delay-200">
           <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
           <div className="absolute -left-10 -bottom-10 h-40 w-40 rounded-full bg-cyan-900/20 blur-2xl" />
-          
+
           <div className="mb-6 relative z-10">
             <span className="inline-flex items-center gap-2 rounded-full bg-white/20 backdrop-blur-md px-3 py-1.5 text-xs font-medium text-white shadow-sm border border-white/30">
               <Sparkles className="h-4 w-4 text-cyan-200" /> YOLOv8 Image Detection

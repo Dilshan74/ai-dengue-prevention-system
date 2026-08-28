@@ -1,10 +1,8 @@
 import bcrypt from "bcryptjs";
-import {
-  usersStore,
-  reportsStore,
-  areasStore,
-  settingsStore,
-} from "../data/stores.js";
+import User from "../models/user.js";
+import Report from "../models/report.js";
+import Area from "../models/area.js";
+import Setting from "../models/settings.js";
 import { asyncHandler, paginate, nextId, ApiError } from "../utils/helpers.js";
 
 function publicUser(user) {
@@ -13,21 +11,20 @@ function publicUser(user) {
 }
 
 export const dashboard = asyncHandler(async (req, res) => {
-  const users = usersStore.all();
-  const reports = reportsStore.all();
-
-  const stats = {
-    totalUsers: users.filter((u) => u.role === "citizen").length,
-    totalPhis: users.filter((u) => u.role === "phi").length,
-    totalReports: reports.length,
-    highRiskReports: reports.filter((r) => r.risk === "High").length,
-    resolvedReports: reports.filter((r) => r.status === "Resolved").length,
-    pendingReports: reports.filter((r) => r.status === "Pending" || r.status === "Under Review").length,
-  };
+  const [totalUsers, totalPhis, totalReports, highRiskReports, resolvedReports, pendingReports, recentReports] =
+    await Promise.all([
+      User.countDocuments({ role: "citizen" }),
+      User.countDocuments({ role: "phi" }),
+      Report.countDocuments(),
+      Report.countDocuments({ risk: "High" }),
+      Report.countDocuments({ status: "Resolved" }),
+      Report.countDocuments({ status: { $in: ["Pending", "Under Review"] } }),
+      Report.find().sort({ date: -1 }).limit(8).lean(),
+    ]);
 
   res.json({
-    stats,
-    recentReports: [...reports].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 8),
+    stats: { totalUsers, totalPhis, totalReports, highRiskReports, resolvedReports, pendingReports },
+    recentReports,
   });
 });
 
@@ -35,62 +32,66 @@ export const dashboard = asyncHandler(async (req, res) => {
 
 export const listUsers = asyncHandler(async (req, res) => {
   const { role, status, search, page = 1, pageSize = 10 } = req.query;
-  let items = usersStore.filter((u) => u.role === "citizen"); // default: citizen users list
-  if (role) items = usersStore.filter((u) => u.role === role);
-  if (status) items = items.filter((u) => u.status === status);
+
+  const query = { role: role || "citizen" };
+  if (status) query.status = status;
+
+  let items = await User.find(query).lean();
+  items = items.map(publicUser);
+
   if (search) {
     const q = String(search).toLowerCase();
     items = items.filter(
       (u) => u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q),
     );
   }
-  const result = paginate(items.map(publicUser), { page, pageSize });
-  res.json(result);
+
+  res.json(paginate(items, { page, pageSize }));
 });
 
 export const createUser = asyncHandler(async (req, res) => {
   const { name, email, mobile, address, password, role = "citizen" } = req.body;
   if (!name || !email || !password) throw new ApiError(400, "Name, email and password are required");
 
-  const existing = usersStore.find((u) => u.email.toLowerCase() === String(email).toLowerCase());
+  const existing = await User.findOne({ email: String(email).toLowerCase() });
   if (existing) throw new ApiError(409, "A user with this email already exists");
 
   const passwordHash = await bcrypt.hash(password, 10);
-  const user = {
+  const user = await User.create({
     id: nextId("U"),
     name,
-    email,
+    email: String(email).toLowerCase(),
     mobile: mobile || "",
     address: address || "",
     passwordHash,
     role,
     status: "Active",
     joined: new Date().toISOString().slice(0, 10),
-  };
-  usersStore.insert(user);
-  res.status(201).json(publicUser(user));
+  });
+
+  res.status(201).json(publicUser(user.toObject()));
 });
 
 export const updateUser = asyncHandler(async (req, res) => {
   const { password, ...patch } = req.body;
   if (password) patch.passwordHash = await bcrypt.hash(password, 10);
 
-  const updated = usersStore.update((u) => u.id === req.params.id, patch);
+  const updated = await User.findOneAndUpdate({ id: req.params.id }, patch, { new: true }).lean();
   if (!updated) throw new ApiError(404, "User not found");
   res.json(publicUser(updated));
 });
 
 export const toggleUserStatus = asyncHandler(async (req, res) => {
-  const user = usersStore.find((u) => u.id === req.params.id);
+  const user = await User.findOne({ id: req.params.id }).lean();
   if (!user) throw new ApiError(404, "User not found");
 
   const nextStatus = user.status === "Active" ? "Inactive" : "Active";
-  const updated = usersStore.update((u) => u.id === req.params.id, { status: nextStatus });
+  const updated = await User.findOneAndUpdate({ id: req.params.id }, { status: nextStatus }, { new: true }).lean();
   res.json(publicUser(updated));
 });
 
 export const deleteUser = asyncHandler(async (req, res) => {
-  const removed = usersStore.remove((u) => u.id === req.params.id);
+  const removed = await User.findOneAndDelete({ id: req.params.id });
   if (!removed) throw new ApiError(404, "User not found");
   res.json({ success: true });
 });
@@ -98,22 +99,108 @@ export const deleteUser = asyncHandler(async (req, res) => {
 // ---- PHIs ----
 
 export const listPhis = asyncHandler(async (req, res) => {
-  const phis = usersStore.filter((u) => u.role === "phi").map(publicUser);
-  res.json(phis);
+  const phis = await User.find({ role: "phi" }).lean();
+  res.json(phis.map(publicUser));
+});
+
+// ---- Reports (admin) ----
+
+export const listReports = asyncHandler(async (req, res) => {
+  const { status, risk, search, page = 1, pageSize = 10 } = req.query;
+  const query = {};
+  if (status) query.status = status;
+  if (risk) query.risk = risk;
+
+  let items = await Report.find(query).sort({ date: -1 }).lean();
+
+  if (search) {
+    const q = String(search).toLowerCase();
+    items = items.filter(
+      (r) =>
+        r.id.toLowerCase().includes(q) ||
+        r.location?.toLowerCase().includes(q) ||
+        r.citizenName?.toLowerCase().includes(q) ||
+        r.description?.toLowerCase().includes(q)
+    );
+  }
+
+  res.json(paginate(items, { page, pageSize }));
+});
+
+export const getReport = asyncHandler(async (req, res) => {
+  const report = await Report.findOne({ id: req.params.id }).lean();
+  if (!report) throw new ApiError(404, "Report not found");
+  res.json(report);
+});
+
+export const assignPhiToReport = asyncHandler(async (req, res) => {
+  const { phiId, status, comments } = req.body;
+
+  const report = await Report.findOne({ id: req.params.id });
+  if (!report) throw new ApiError(404, "Report not found");
+
+  // Resolve the PHI user
+  let phiName = "—";
+  if (phiId) {
+    const phi = await User.findOne({ id: phiId, role: "phi" }).lean();
+    if (!phi) throw new ApiError(404, "PHI user not found");
+    phiName = phi.name;
+  }
+
+  const newStatus = status || (report.status === "Pending" ? "Under Review" : report.status);
+
+  const historyEntry = {
+    status: newStatus,
+    date: new Date(),
+    comments: comments || (phiId ? `Assigned to ${phiName}` : "Status updated by admin"),
+  };
+
+  const updated = await Report.findOneAndUpdate(
+    { id: req.params.id },
+    {
+      ...(phiId && { phi: phiName, phiId }),
+      status: newStatus,
+      updated: new Date(),
+      $push: { history: historyEntry },
+    },
+    { new: true }
+  ).lean();
+
+  res.json(updated);
+});
+
+export const adminUpdateStatus = asyncHandler(async (req, res) => {
+  const { status, comments } = req.body;
+  if (!status) throw new ApiError(400, "Status is required");
+
+  const report = await Report.findOne({ id: req.params.id });
+  if (!report) throw new ApiError(404, "Report not found");
+
+  const updated = await Report.findOneAndUpdate(
+    { id: req.params.id },
+    {
+      status,
+      updated: new Date(),
+      $push: { history: { status, date: new Date(), comments: comments || "" } },
+    },
+    { new: true }
+  ).lean();
+
+  res.json(updated);
 });
 
 export const createPhi = asyncHandler(async (req, res) => {
   const { name, email, mobile, area, password } = req.body;
   if (!name || !email || !password) throw new ApiError(400, "Name, email and password are required");
 
-  const existing = usersStore.find((u) => u.email.toLowerCase() === String(email).toLowerCase());
+  const existing = await User.findOne({ email: String(email).toLowerCase() });
   if (existing) throw new ApiError(409, "A user with this email already exists");
 
   const passwordHash = await bcrypt.hash(password, 10);
-  const phi = {
+  const phi = await User.create({
     id: nextId("PHI"),
     name,
-    email,
+    email: String(email).toLowerCase(),
     mobile: mobile || "",
     passwordHash,
     role: "phi",
@@ -121,21 +208,25 @@ export const createPhi = asyncHandler(async (req, res) => {
     inspections: 0,
     rating: 0,
     status: "Active",
-  };
-  usersStore.insert(phi);
-  res.status(201).json(publicUser(phi));
+  });
+
+  res.status(201).json(publicUser(phi.toObject()));
 });
 
 export const assignArea = asyncHandler(async (req, res) => {
   const { areaId } = req.body;
-  const phi = usersStore.find((u) => u.id === req.params.phiId && u.role === "phi");
+  const phi = await User.findOne({ id: req.params.phiId, role: "phi" }).lean();
   if (!phi) throw new ApiError(404, "PHI not found");
 
-  const area = areasStore.find((a) => a.id === areaId);
+  const area = await Area.findOne({ id: areaId }).lean();
   if (!area) throw new ApiError(404, "Area not found");
 
-  areasStore.update((a) => a.id === areaId, { phi: phi.name, phiId: phi.id });
-  const updatedPhi = usersStore.update((u) => u.id === phi.id, { area: area.name });
+  await Area.findOneAndUpdate({ id: areaId }, { phi: phi.name, phiId: phi.id });
+  const updatedPhi = await User.findOneAndUpdate(
+    { id: phi.id },
+    { area: area.name },
+    { new: true }
+  ).lean();
 
   res.json(publicUser(updatedPhi));
 });
@@ -143,7 +234,8 @@ export const assignArea = asyncHandler(async (req, res) => {
 // ---- Areas ----
 
 export const listAreas = asyncHandler(async (req, res) => {
-  res.json(areasStore.all());
+  const areas = await Area.find().lean();
+  res.json(areas);
 });
 
 export const createArea = asyncHandler(async (req, res) => {
@@ -151,9 +243,9 @@ export const createArea = asyncHandler(async (req, res) => {
   if (!name) throw new ApiError(400, "Area name is required");
 
   let phi = null;
-  if (phiId) phi = usersStore.find((u) => u.id === phiId && u.role === "phi");
+  if (phiId) phi = await User.findOne({ id: phiId, role: "phi" }).lean();
 
-  const area = {
+  const area = await Area.create({
     id: nextId("A"),
     name,
     risk,
@@ -162,19 +254,19 @@ export const createArea = asyncHandler(async (req, res) => {
     reports: 0,
     x,
     y,
-  };
-  areasStore.insert(area);
-  res.status(201).json(area);
+  });
+
+  res.status(201).json(area.toObject());
 });
 
 export const updateArea = asyncHandler(async (req, res) => {
-  const updated = areasStore.update((a) => a.id === req.params.id, req.body);
+  const updated = await Area.findOneAndUpdate({ id: req.params.id }, req.body, { new: true }).lean();
   if (!updated) throw new ApiError(404, "Area not found");
   res.json(updated);
 });
 
 export const deleteArea = asyncHandler(async (req, res) => {
-  const removed = areasStore.remove((a) => a.id === req.params.id);
+  const removed = await Area.findOneAndDelete({ id: req.params.id });
   if (!removed) throw new ApiError(404, "Area not found");
   res.json({ success: true });
 });
@@ -182,7 +274,7 @@ export const deleteArea = asyncHandler(async (req, res) => {
 // ---- Statistics & Settings ----
 
 export const statistics = asyncHandler(async (req, res) => {
-  const reports = reportsStore.all();
+  const reports = await Report.find().lean();
 
   const byMonth = {};
   reports.forEach((r) => {
@@ -205,9 +297,19 @@ export const statistics = asyncHandler(async (req, res) => {
 });
 
 export const getSettings = asyncHandler(async (req, res) => {
-  res.json(settingsStore.get());
+  let settings = await Setting.findOne({ key: "main" }).lean();
+  if (!settings) {
+    settings = await Setting.create({ key: "main" });
+    settings = settings.toObject();
+  }
+  res.json(settings);
 });
 
 export const updateSettings = asyncHandler(async (req, res) => {
-  res.json(settingsStore.set(req.body));
+  const updated = await Setting.findOneAndUpdate(
+    { key: "main" },
+    req.body,
+    { new: true, upsert: true }
+  ).lean();
+  res.json(updated);
 });

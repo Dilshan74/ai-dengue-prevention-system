@@ -11,6 +11,8 @@ import AIAccuracy from "../pages/admin/AIAccuracy/AIAccuracy";
 import MonthlyReports from "../pages/admin/MonthlyReports/MonthlyReports";
 import Notifications from "../pages/admin/Notifications/Notifications";
 import Settings from "../pages/admin/Settings/Settings";
+import AdminComplaints from "../pages/admin/Complaints/AdminComplaints";
+import AdminComplaintDetail from "../pages/admin/Complaints/AdminComplaintDetail";
 
 /** Administrator route group. */
 export const adminRoutes = (
@@ -20,6 +22,8 @@ export const adminRoutes = (
       <Route path="users" element={<ManageUsers />} />
       <Route path="phis" element={<ManagePHIs />} />
       <Route path="areas" element={<ManageAreas />} />
+      <Route path="complaints" element={<AdminComplaints />} />
+      <Route path="complaints/:id" element={<AdminComplaintDetail />} />
       <Route path="statistics" element={<Statistics />} />
       <Route path="ai-accuracy" element={<AIAccuracy />} />
       <Route path="monthly-reports" element={<MonthlyReports />} />

@@ -1,8 +1,8 @@
 import { verifyToken } from "../utils/jwt.js";
 import { ApiError } from "../utils/helpers.js";
-import { usersStore } from "../data/stores.js";
+import User from "../models/user.js";
 
-export function verifyAuth(req, res, next) {
+export async function verifyAuth(req, res, next) {
   const header = req.headers.authorization || "";
   const token = header.startsWith("Bearer ") ? header.slice(7) : null;
 
@@ -12,7 +12,7 @@ export function verifyAuth(req, res, next) {
 
   try {
     const payload = verifyToken(token);
-    const user = usersStore.find((u) => u.id === payload.id);
+    const user = await User.findOne({ id: payload.id }).lean();
     if (!user) return next(new ApiError(401, "User no longer exists"));
     req.user = user;
     next();

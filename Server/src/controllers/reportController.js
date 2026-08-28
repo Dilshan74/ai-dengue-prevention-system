@@ -1,26 +1,28 @@
-import { reportsStore } from "../data/stores.js";
+import Report from "../models/report.js";
 import { asyncHandler, paginate, ApiError } from "../utils/helpers.js";
 import { toCsv, toExcel, toPdf } from "../utils/exportUtils.js";
 
-/** Scope the report list to what the caller's role is allowed to see. */
-function scopedReports(user) {
-  const all = reportsStore.all();
-  if (user.role === "admin") return all;
-  if (user.role === "phi") return all.filter((r) => r.phiId === user.id);
-  return all.filter((r) => r.citizenId === user.id);
+/** Scope the report query to what the caller's role is allowed to see. */
+function scopedQuery(user) {
+  if (user.role === "admin") return {};
+  if (user.role === "phi") return { phiId: user.id };
+  return { citizenId: user.id };
 }
 
 export const list = asyncHandler(async (req, res) => {
   const { status, risk, page = 1, pageSize = 10 } = req.query;
-  let items = scopedReports(req.user);
-  if (status) items = items.filter((r) => r.status === status);
-  if (risk) items = items.filter((r) => r.risk === risk);
-  items = [...items].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  const query = scopedQuery(req.user);
+  if (status) query.status = status;
+  if (risk) query.risk = risk;
+
+  let items = await Report.find(query).sort({ date: -1 }).lean();
   res.json(paginate(items, { page, pageSize }));
 });
 
 export const byId = asyncHandler(async (req, res) => {
-  const report = scopedReports(req.user).find((r) => r.id === req.params.id);
+  const query = { id: req.params.id, ...scopedQuery(req.user) };
+  const report = await Report.findOne(query).lean();
   if (!report) throw new ApiError(404, "Report not found");
   res.json(report);
 });
@@ -29,24 +31,25 @@ export const updateStatus = asyncHandler(async (req, res) => {
   const { status, comments } = req.body;
   if (!status) throw new ApiError(400, "Status is required");
 
-  const report = scopedReports(req.user).find((r) => r.id === req.params.id);
+  const query = { id: req.params.id, ...scopedQuery(req.user) };
+  const report = await Report.findOne(query).lean();
   if (!report) throw new ApiError(404, "Report not found");
 
-  const updated = reportsStore.replace(
-    (r) => r.id === report.id,
+  const updated = await Report.findOneAndUpdate(
+    { id: report.id },
     {
-      ...report,
       status,
-      updated: new Date().toISOString(),
-      history: [...(report.history || []), { status, date: new Date().toISOString(), comments: comments || "" }],
+      updated: new Date(),
+      $push: { history: { status, date: new Date(), comments: comments || "" } },
     },
-  );
+    { new: true }
+  ).lean();
 
   res.json(updated);
 });
 
 export const monthly = asyncHandler(async (req, res) => {
-  const reports = scopedReports(req.user);
+  const reports = await Report.find(scopedQuery(req.user)).lean();
   const byMonth = {};
   reports.forEach((r) => {
     const month = new Date(r.date).toLocaleString("en-US", { month: "short" });
@@ -59,7 +62,7 @@ export const monthly = asyncHandler(async (req, res) => {
 
 export const exportReports = asyncHandler(async (req, res) => {
   const { format } = req.params;
-  const items = scopedReports(req.user);
+  const items = await Report.find(scopedQuery(req.user)).lean();
 
   if (format === "csv") {
     const csv = toCsv(items);
