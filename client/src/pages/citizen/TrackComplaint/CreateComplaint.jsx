@@ -3,6 +3,7 @@ import { MapPin, X, ImagePlus, FileSearch } from "lucide-react";
 import { toast } from "sonner";
 import Button from "../../../components/common/Button";
 import { FormField, Input, Textarea } from "../../../components/common/Field";
+import LocationPicker from "../../../components/maps/LocationPicker";
 import { rules, validate } from "../../../utils/validators";
 import citizenService from "../../../services/citizenService";
 
@@ -12,6 +13,7 @@ export default function CreateComplaint({ onClose, onCreated }) {
     location: "",
     address: "",
   });
+  const [coords, setCoords] = useState(null);
   const [errors, setErrors] = useState({});
   const [files, setFiles] = useState([]);
   const [previews, setPreviews] = useState([]);
@@ -48,6 +50,10 @@ export default function CreateComplaint({ onClose, onCreated }) {
     formData.append("description", values.description.trim());
     formData.append("location", values.location.trim());
     formData.append("address", values.address.trim() || values.location.trim());
+    if (coords) {
+      formData.append("lat", coords.lat);
+      formData.append("lng", coords.lng);
+    }
     files.forEach((f) => formData.append("image", f));
 
     try {
@@ -136,6 +142,14 @@ export default function CreateComplaint({ onClose, onCreated }) {
                 disabled={loading}
               />
             </FormField>
+
+            {/* Map Location Picker */}
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">
+                Pin Location on Map (optional)
+              </label>
+              <LocationPicker value={coords} onChange={setCoords} />
+            </div>
 
             {/* Image upload */}
             <div>

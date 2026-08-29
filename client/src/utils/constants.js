@@ -81,15 +81,7 @@ export const PHI_REPORTS = [
   { id: "DG-1037", name: "Sanduni P.", location: "Battaramulla, Ward 5", risk: "Medium", date: "2026-07-22", status: "Accepted", image: "🌿" },
 ];
 
-export const NOTIFICATIONS = [
-  { id: 1, type: "success", title: "Report Accepted", body: "DG-1039 was accepted by PHI S. Fernando.", time: "2h ago" },
-  { id: 2, type: "info", title: "PHI Assigned", body: "Inspector K. Silva assigned to DG-1031.", time: "6h ago" },
-  { id: 3, type: "success", title: "Inspection Completed", body: "Site cleared at Dehiwala Ward 9.", time: "1d ago" },
-  { id: 4, type: "warning", title: "High Risk Alert", body: "Dengue cases rising near Nugegoda.", time: "1d ago" },
-  { id: 5, type: "warning", title: "Weather Warning", body: "Heavy rain expected — check water storage.", time: "2d ago" },
-  { id: 6, type: "info", title: "Inspection Scheduled", body: "PHI I. Perera will visit DG-1042 tomorrow at 10 AM.", time: "just now" },
-  { id: 7, type: "warning", title: "Weather Warning", body: "Heavy showers forecast. Cover water storage.", time: "3d ago" },
-];
+export const NOTIFICATIONS = [];
 
 export const PHI_NOTIFICATIONS = [
   { id: 1, type: "info", title: "New report assigned", body: "DG-1042 assigned to your queue.", time: "10m ago" },

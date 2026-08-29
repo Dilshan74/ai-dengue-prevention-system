@@ -14,6 +14,7 @@ import reportRoutes from "./routes/reportRoutes.js";
 import mapRoutes from "./routes/mapRoutes.js";
 import aiRoutes from "./routes/aiRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
+import dengueRiskRoutes from "./routes/dengueRisk.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -38,6 +39,7 @@ app.use("/api/reports", reportRoutes);
 app.use("/api/map", mapRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/dengue-risk", dengueRiskRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

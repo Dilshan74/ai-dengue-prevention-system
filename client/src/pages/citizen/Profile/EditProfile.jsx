@@ -1,28 +1,53 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import Button from "../../../components/common/Button";
 import PageHeader from "../../../components/common/PageHeader";
 import { FormField, Input, Textarea } from "../../../components/common/Field";
 import { rules, validate } from "../../../utils/validators";
+import citizenService from "../../../services/citizenService";
+import useAuth from "../../../hooks/useAuth";
 
 const INITIAL = {
-  name: "Nimal Perera",
-  email: "nimal@example.lk",
-  mobile: "+94 77 123 4567",
-  nic: "962541234V",
-  address: "No 12, Temple Road, Nugegoda, Ward 12",
+  name: "",
+  email: "",
+  mobile: "",
+  nic: "",
+  address: "",
 };
 
 export default function EditProfile() {
   const navigate = useNavigate();
+  const { user, login } = useAuth();
   const [values, setValues] = useState(INITIAL);
   const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    citizenService
+      .profile()
+      .then((data) => {
+        setValues({
+          name: data.name || "",
+          email: data.email || "",
+          mobile: data.mobile || "",
+          nic: data.nic || "",
+          address: data.address || data.area || "",
+        });
+      })
+      .catch(() => {
+        toast.error("Failed to load profile details");
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, []);
 
   const onChange = (field) => (event) =>
     setValues((current) => ({ ...current, [field]: event.target.value }));
 
-  const submit = (event) => {
+  const submit = async (event) => {
     event.preventDefault();
     const nextErrors = validate(values, {
       name: [rules.required()],
@@ -32,9 +57,36 @@ export default function EditProfile() {
     });
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) return;
-    toast.success("Profile updated");
-    navigate("/citizen/profile");
+
+    try {
+      setSaving(true);
+      await citizenService.updateProfile({
+        name: values.name,
+        email: values.email,
+        mobile: values.mobile,
+        nic: values.nic,
+        address: values.address,
+      });
+      // Update the AuthContext's cached name if it changed
+      if (values.name !== user?.name) {
+        login({ ...user, name: values.name });
+      }
+      toast.success("Profile updated");
+      navigate("/citizen/profile");
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Failed to update profile");
+    } finally {
+      setSaving(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
 
   return (
     <>
@@ -67,10 +119,12 @@ export default function EditProfile() {
           </FormField>
         </div>
         <div className="mt-6 flex justify-end gap-2">
-          <Button variant="ghost" onClick={() => navigate("/citizen/profile")}>
+          <Button variant="ghost" onClick={() => navigate("/citizen/profile")} type="button">
             Cancel
           </Button>
-          <Button type="submit">Save Changes</Button>
+          <Button type="submit" disabled={saving}>
+            {saving ? "Saving..." : "Save Changes"}
+          </Button>
         </div>
       </form>
     </>

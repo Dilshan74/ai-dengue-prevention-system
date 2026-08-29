@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import Button from "../../../components/common/Button";
 import PageHeader from "../../../components/common/PageHeader";
 import { Label, Switch } from "../../../components/common/Field";
 import useTheme from "../../../hooks/useTheme";
+import citizenService from "../../../services/citizenService";
 
 const GROUPS = [
   {
@@ -17,24 +18,60 @@ const GROUPS = [
   { title: "Display", items: ["Dark mode", "Reduce motion", "High contrast"] },
 ];
 
-const initialState = () =>
-  Object.fromEntries(
-    GROUPS.flatMap((group) => group.items.map((item, index) => [item, index % 2 === 0])),
-  );
-
 export default function Settings() {
   const { isDark, toggleTheme } = useTheme();
-  const [toggles, setToggles] = useState(initialState);
+  const [toggles, setToggles] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  const isChecked = (item) => (item === "Dark mode" ? isDark : toggles[item]);
+  useEffect(() => {
+    citizenService
+      .profile()
+      .then((data) => {
+        const userSettings = data.settings || {};
+        setToggles(userSettings);
+        applyDisplaySettings(userSettings);
+      })
+      .catch(() => toast.error("Failed to load settings"))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const applyDisplaySettings = (settings) => {
+    document.documentElement.classList.toggle("reduce-motion", !!settings["Reduce motion"]);
+    document.documentElement.classList.toggle("high-contrast", !!settings["High contrast"]);
+  };
+
+  const isChecked = (item) => (item === "Dark mode" ? isDark : !!toggles[item]);
 
   const setToggle = (item) => (checked) => {
     if (item === "Dark mode") {
       toggleTheme();
       return;
     }
-    setToggles((current) => ({ ...current, [item]: checked }));
+    const newToggles = { ...toggles, [item]: checked };
+    setToggles(newToggles);
+    applyDisplaySettings(newToggles);
   };
+
+  const savePreferences = async () => {
+    try {
+      setSaving(true);
+      await citizenService.updateSettings(toggles);
+      toast.success("Preferences saved successfully!");
+    } catch (err) {
+      toast.error("Failed to save preferences.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
 
   return (
     <>
@@ -55,7 +92,9 @@ export default function Settings() {
         ))}
       </div>
       <div className="mt-6 flex justify-end">
-        <Button onClick={() => toast.success("Preferences saved")}>Save preferences</Button>
+        <Button onClick={savePreferences} disabled={saving}>
+          {saving ? "Saving..." : "Save preferences"}
+        </Button>
       </div>
     </>
   );

@@ -1,5 +1,6 @@
 import Report from "../models/report.js";
 import User from "../models/user.js";
+import DengueRisk from "../models/dengueRisk.js";
 import { asyncHandler, nextReportId, paginate, ApiError } from "../utils/helpers.js";
 import { uploadUrl } from "../middleware/upload.js";
 
@@ -17,10 +18,32 @@ export const dashboard = asyncHandler(async (req, res) => {
     .sort((a, b) => new Date(b.date) - new Date(a.date))
     .slice(0, 5);
 
+  let userArea = req.user.area;
+  
+  if (!userArea && req.user.address) {
+    const knownDistricts = [
+      "Colombo", "Gampaha", "Kalutara", "Kandy", "Matale", "Nuwara Eliya", 
+      "Galle", "Matara", "Hambantota", "Jaffna", "Kilinochchi", "Mannar", 
+      "Vavuniya", "Mullaitivu", "Batticaloa", "Ampara", "Trincomalee", 
+      "Kurunegala", "Puttalam", "Anuradhapura", "Polonnaruwa", "Badulla", 
+      "Monaragala", "Ratnapura", "Kegalle"
+    ];
+    const addr = req.user.address.toLowerCase();
+    userArea = knownDistricts.find(d => addr.includes(d.toLowerCase()));
+  }
+  
+  userArea = userArea || "Colombo";
+  
+  let areaRisk = await DengueRisk.findOne({ locationName: userArea }).lean();
+  
+  if (!areaRisk) {
+    areaRisk = await DengueRisk.findOne({ locationName: "Colombo" }).lean(); // fallback
+  }
+
   res.json({
     stats,
     recentReports,
-    weather: { city: "Colombo", temp: 29, condition: "Thunderstorms", humidity: 82, rain: 68 },
+    areaRisk,
     tips: [
       "Empty water containers, buckets, and flower pots weekly.",
       "Cover water storage tanks and wells tightly.",
@@ -96,11 +119,13 @@ export const profile = asyncHandler(async (req, res) => {
 });
 
 export const updateProfile = asyncHandler(async (req, res) => {
-  const { name, mobile, address } = req.body;
+  const { name, mobile, address, email, nic } = req.body;
   const patch = {};
   if (name) patch.name = name;
   if (mobile) patch.mobile = mobile;
   if (address) patch.address = address;
+  if (email) patch.email = email;
+  if (nic) patch.nic = nic;
 
   const updated = await User.findOneAndUpdate({ id: req.user.id }, patch, { new: true }).lean();
   const { passwordHash, ...rest } = updated; // eslint-disable-line no-unused-vars

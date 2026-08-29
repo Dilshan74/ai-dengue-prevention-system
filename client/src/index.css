@@ -160,3 +160,56 @@
   -webkit-backdrop-filter: blur(16px);
   border-right: 1px solid var(--color-sidebar-border);
 }
+
+/* ---- Google Map Components ---- */
+
+.map-container {
+  min-height: 220px;
+  height: 100%;
+  width: 100%;
+}
+
+.map-info-window {
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  color: #0f172a;
+  line-height: 1.5;
+}
+
+.map-info-window h4 {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0 0 6px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.map-info-window table {
+  font-size: 12px;
+  border-collapse: collapse;
+}
+
+.map-info-window td {
+  padding: 2px 0;
+}
+
+/* ---- Accessibility Settings ---- */
+
+.reduce-motion * {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}
+
+.high-contrast {
+  --primary: #000000;
+  --primary-foreground: #ffffff;
+  --muted-foreground: #000000;
+  --card: #ffffff;
+}
+.dark.high-contrast {
+  --primary: #ffffff;
+  --primary-foreground: #000000;
+  --muted-foreground: #ffffff;
+  --card: #000000;
+}
+

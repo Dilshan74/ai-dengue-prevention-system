@@ -18,6 +18,39 @@ export const heatmap = asyncHandler(async (req, res) => {
 });
 
 /**
+ * Full report data for map markers. Supports optional risk / status filters.
+ * GET /api/map/reports?risk=High&status=Pending
+ */
+export const mapReports = asyncHandler(async (req, res) => {
+  const { risk, status } = req.query;
+
+  const query = { lat: { $ne: null }, lng: { $ne: null } };
+  if (risk) query.risk = risk;
+  if (status) query.status = status;
+
+  const reports = await Report.find(query)
+    .sort({ date: -1 })
+    .lean();
+
+  const items = reports.map((r) => ({
+    id: r.id,
+    description: r.description,
+    location: r.location,
+    address: r.address,
+    lat: r.lat,
+    lng: r.lng,
+    risk: r.risk,
+    status: r.status,
+    date: r.date,
+    citizenName: r.citizenName,
+    phi: r.phi,
+    phiId: r.phiId,
+  }));
+
+  res.json(items);
+});
+
+/**
  * Simulated reverse geocode. There's no external maps provider wired up in
  * this demo backend — swap this for a real provider (Google/Mapbox/OSM) by
  * calling out to their API here.

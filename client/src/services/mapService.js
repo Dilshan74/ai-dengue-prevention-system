@@ -2,7 +2,9 @@ import { request } from "./api";
 
 export const mapService = {
   riskAreas: (params) => request({ url: "/map/risk-areas", params }),
+  dengueRisk: () => request({ url: "/dengue-risk" }),
   heatmap: (params) => request({ url: "/map/heatmap", params }),
+  reports: (params) => request({ url: "/map/reports", params }),
   reverseGeocode: (lat, lng) =>
     request({ url: "/map/reverse-geocode", params: { lat, lng } }),
 

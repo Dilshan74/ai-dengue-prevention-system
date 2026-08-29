@@ -29,6 +29,11 @@ const userSchema = new mongoose.Schema(
       default: "",
     },
 
+    nic: {
+      type: String,
+      default: "",
+    },
+
     address: {
       type: String,
       default: "",
