@@ -1,14 +1,33 @@
+import mongoose from "mongoose";
 import Area from "../models/area.js";
 import Report from "../models/report.js";
+import { areasStore, reportsStore } from "../data/stores.js";
 import { asyncHandler } from "../utils/helpers.js";
 
 export const riskAreas = asyncHandler(async (req, res) => {
-  const areas = await Area.find().lean();
-  res.json(areas);
+  if (mongoose.connection.readyState === 1) {
+    try {
+      const areas = await Area.find().lean();
+      return res.json(areas);
+    } catch (e) {
+      return res.json(areasStore.all());
+    }
+  }
+  res.json(areasStore.all());
 });
 
 export const heatmap = asyncHandler(async (req, res) => {
-  const reports = await Report.find({ lat: { $ne: null }, lng: { $ne: null } }).lean();
+  let reports = [];
+  if (mongoose.connection.readyState === 1) {
+    try {
+      reports = await Report.find({ lat: { $ne: null }, lng: { $ne: null } }).lean();
+    } catch (e) {
+      reports = reportsStore.all().filter((r) => r.lat != null && r.lng != null);
+    }
+  } else {
+    reports = reportsStore.all().filter((r) => r.lat != null && r.lng != null);
+  }
+
   const points = reports.map((r) => ({
     lat: r.lat,
     lng: r.lng,
@@ -24,13 +43,24 @@ export const heatmap = asyncHandler(async (req, res) => {
 export const mapReports = asyncHandler(async (req, res) => {
   const { risk, status } = req.query;
 
-  const query = { lat: { $ne: null }, lng: { $ne: null } };
-  if (risk) query.risk = risk;
-  if (status) query.status = status;
+  let reports = [];
+  if (mongoose.connection.readyState === 1) {
+    try {
+      const query = { lat: { $ne: null }, lng: { $ne: null } };
+      if (risk) query.risk = risk;
+      if (status) query.status = status;
 
-  const reports = await Report.find(query)
-    .sort({ date: -1 })
-    .lean();
+      reports = await Report.find(query).sort({ date: -1 }).lean();
+    } catch (e) {
+      reports = reportsStore.all().filter((r) => r.lat != null && r.lng != null);
+      if (risk) reports = reports.filter((r) => r.risk === risk);
+      if (status) reports = reports.filter((r) => r.status === status);
+    }
+  } else {
+    reports = reportsStore.all().filter((r) => r.lat != null && r.lng != null);
+    if (risk) reports = reports.filter((r) => r.risk === risk);
+    if (status) reports = reports.filter((r) => r.status === status);
+  }
 
   const items = reports.map((r) => ({
     id: r.id,
