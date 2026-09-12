@@ -9,27 +9,25 @@ import { updateNDCUDengueData } from "./src/services/ndcuService.js";
 
 const startServer = async () => {
   try {
-    // Connect to MongoDB first
+    // Attempt MongoDB connection if available
     await connectDB();
-
-    // Start Express server after MongoDB connection succeeds
-    app.listen(env.port, () => {
-      console.log(
-        `DengueGuard AI backend running on http://localhost:${env.port}`
-      );
-      
-      // Start the scheduled job for NDCU updates
-      startNDCUUpdater();
-      
-      // Run an initial update check without blocking the server start
-      updateNDCUDengueData().catch(err => {
-        console.error('[NDCU] Initial update check failed:', err.message);
-      });
-    });
   } catch (error) {
-    console.error("Failed to start server:", error.message);
-    process.exit(1);
+    console.warn("MongoDB connection skipped/failed, proceeding with local storage fallback.");
   }
+
+  app.listen(env.port, () => {
+    console.log(`DengueGuard AI backend running on http://localhost:${env.port}`);
+    
+    // Start the scheduled job for NDCU updates
+    try {
+      startNDCUUpdater();
+      updateNDCUDengueData().catch((err) => {
+        console.error("[NDCU] Initial update check failed:", err.message);
+      });
+    } catch (e) {
+      console.warn("NDCU updater startup note:", e.message);
+    }
+  });
 };
 
 startServer();

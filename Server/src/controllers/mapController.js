@@ -50,17 +50,60 @@ export const mapReports = asyncHandler(async (req, res) => {
   res.json(items);
 });
 
-/**
- * Simulated reverse geocode. There's no external maps provider wired up in
- * this demo backend — swap this for a real provider (Google/Mapbox/OSM) by
- * calling out to their API here.
- */
 export const reverseGeocode = asyncHandler(async (req, res) => {
   const { lat, lng } = req.query;
+  if (!lat || !lng) {
+    return res.status(400).json({ message: "lat and lng query parameters are required" });
+  }
+
+  const nLat = Number(lat);
+  const nLng = Number(lng);
+
+  try {
+    const osmUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${nLat}&lon=${nLng}&zoom=16&addressdetails=1`;
+    const response = await fetch(osmUrl, {
+      headers: { "User-Agent": "DengueGuard-KDU-AI-System/1.0" },
+      signal: AbortSignal.timeout(3500),
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      const addr = data.address || {};
+      const suburb = addr.suburb || addr.neighbourhood || addr.city_district || addr.town || addr.village || "";
+      const city = addr.city || addr.county || addr.state_district || "Colombo";
+      const state = addr.state || "Western Province";
+      const formatted = [suburb, city, state].filter(Boolean).join(", ") || data.display_name;
+
+      return res.json({
+        lat: nLat,
+        lng: nLng,
+        address: formatted,
+        suburb,
+        city,
+        state,
+        district: city,
+        formatted: data.display_name,
+      });
+    }
+  } catch (err) {
+    console.warn("Reverse geocode fetch failed, using fallback:", err.message);
+  }
+
+  // Fallback Sri Lanka district mapping by approximate coordinates
+  let estimatedDistrict = "Colombo";
+  if (nLat > 9.0) estimatedDistrict = "Jaffna";
+  else if (nLat > 7.8 && nLng > 81.0) estimatedDistrict = "Trincomalee / Batticaloa";
+  else if (nLat > 7.8) estimatedDistrict = "Anuradhapura";
+  else if (nLat > 7.2 && nLng > 80.5) estimatedDistrict = "Kandy";
+  else if (nLat > 7.0 && nLng < 80.1) estimatedDistrict = "Gampaha";
+  else if (nLat < 6.2) estimatedDistrict = "Galle / Matara";
+  else if (nLng > 80.3) estimatedDistrict = "Ratnapura";
+
   res.json({
-    lat: Number(lat),
-    lng: Number(lng),
-    address: `Near ${Number(lat).toFixed(3)}, ${Number(lng).toFixed(3)}`,
-    formatted: "Address lookup requires a maps provider API key (not configured in this demo).",
+    lat: nLat,
+    lng: nLng,
+    address: `${estimatedDistrict}, Sri Lanka`,
+    district: estimatedDistrict,
+    formatted: `GPS Location (${nLat.toFixed(4)}° N, ${nLng.toFixed(4)}° E), ${estimatedDistrict}`,
   });
 });

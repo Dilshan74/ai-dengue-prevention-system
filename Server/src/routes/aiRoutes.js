@@ -5,9 +5,11 @@ import { upload } from "../middleware/upload.js";
 
 const router = Router();
 
-router.use(verifyAuth);
-
+// Public endpoint for image analysis / prediction
 router.post("/predict", upload.single("image"), aiController.predict);
+
+// Protected endpoints
+router.use(verifyAuth);
 router.get("/predictions/:reportId", aiController.getPrediction);
 router.get("/accuracy", aiController.accuracy);
 router.post("/predictions/:reportId/feedback", aiController.feedback);

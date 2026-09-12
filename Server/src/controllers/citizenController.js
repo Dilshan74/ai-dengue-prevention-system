@@ -82,12 +82,13 @@ export const getComplaint = asyncHandler(async (req, res) => {
 });
 
 export const createComplaint = asyncHandler(async (req, res) => {
-  const { description, location, address, lat, lng } = req.body;
+  const { description, location, address, lat, lng, image: rawImage, risk, riskScore, priority, predictions, category } = req.body;
   if (!description || !location) {
     throw new ApiError(400, "Description and location are required");
   }
 
-  const images = (req.files || []).map((f) => uploadUrl(f.filename));
+  const uploadedFiles = (req.files || []).map((f) => uploadUrl(f.filename));
+  const finalImage = uploadedFiles[0] || rawImage || "🪣";
 
   const report = await Report.create({
     id: nextReportId(),
@@ -98,19 +99,23 @@ export const createComplaint = asyncHandler(async (req, res) => {
     address: address || location,
     lat: lat ? Number(lat) : null,
     lng: lng ? Number(lng) : null,
-    image: images[0] || "🪣",
-    images,
+    category: category || "container",
+    image: finalImage,
+    images: uploadedFiles.length > 0 ? uploadedFiles : (rawImage ? [rawImage] : []),
     status: "Pending",
-    risk: "Medium",
+    risk: risk || "Medium",
+    riskScore: riskScore ? Number(riskScore) : (risk === "High" ? 85 : risk === "Medium" ? 55 : 25),
+    priority: priority || (risk === "High" ? "Immediate Inspection" : risk === "Medium" ? "Moderate" : "Low"),
+    predictions: predictions || [],
     phi: "—",
     phiId: null,
     date: new Date(),
     updated: new Date(),
     comments: [],
-    history: [{ status: "Pending", date: new Date(), comments: "Report submitted" }],
+    history: [{ status: "Pending", date: new Date(), comments: "Report submitted & queued for PHI review" }],
   });
 
-  res.status(201).json(report.toObject());
+  res.status(201).json(report.toObject ? report.toObject() : report);
 });
 
 export const profile = asyncHandler(async (req, res) => {

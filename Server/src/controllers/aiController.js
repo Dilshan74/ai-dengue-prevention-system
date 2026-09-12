@@ -1,17 +1,59 @@
+import fs from "fs";
 import { predictionsStore, reportsStore } from "../data/stores.js";
 import { asyncHandler, nextId, ApiError } from "../utils/helpers.js";
-import { classifyImage } from "../utils/aiSimulator.js";
 import { uploadUrl } from "../middleware/upload.js";
+import { calculateCompositeRisk } from "../services/riskScoringService.js";
 
 export const predict = asyncHandler(async (req, res) => {
   if (!req.file) throw new ApiError(400, "An image is required");
 
-  const result = classifyImage();
+  // Read file and prepare FormData for FastAPI
+  const fileBuffer = fs.readFileSync(req.file.path);
+  const blob = new Blob([fileBuffer], { type: req.file.mimetype });
+  const formData = new FormData();
+  formData.append("image", blob, req.file.filename);
+
+  let aiResult;
+  try {
+    const aiResponse = await fetch("http://localhost:8000/predict", {
+      method: "POST",
+      body: formData,
+    });
+    if (!aiResponse.ok) {
+      throw new Error(`FastAPI returned ${aiResponse.status}`);
+    }
+    aiResult = await aiResponse.json();
+  } catch (error) {
+    console.error("AI Service Error:", error);
+    throw new ApiError(500, "AI prediction service is currently unavailable");
+  }
+
+  const { lat, lng, district, location } = req.body;
+
+  // Calculate composite multi-factor risk assessment (40% AI, 20% Weather, 25% History, 15% Density)
+  const compositeRisk = await calculateCompositeRisk({
+    predictions: aiResult.predictions || [],
+    lat: lat ? Number(lat) : null,
+    lng: lng ? Number(lng) : null,
+    district: district || "",
+    location: location || "",
+  });
+
   const prediction = {
     id: nextId("PRED"),
     reportId: req.body.reportId || null,
     image: uploadUrl(req.file.filename),
-    ...result,
+    label: aiResult.primary_label || (compositeRisk.riskLevel + " Risk"),
+    risk: compositeRisk.riskLevel,
+    riskScore: compositeRisk.riskScore,
+    priority: compositeRisk.priority,
+    confidence: aiResult.overall_confidence,
+    riskAssessment: compositeRisk,
+    detectedObjects: (aiResult.predictions || []).map(p => ({
+      label: p.class,
+      conf: Math.round(p.confidence * 100),
+      bbox: p.bbox
+    })),
     createdAt: new Date().toISOString(),
     feedback: null,
   };
@@ -19,7 +61,11 @@ export const predict = asyncHandler(async (req, res) => {
 
   // If this prediction is tied to a report, sync the report's risk level.
   if (prediction.reportId) {
-    reportsStore.update((r) => r.id === prediction.reportId, { risk: result.risk });
+    reportsStore.update((r) => r.id === prediction.reportId, { 
+      risk: compositeRisk.riskLevel,
+      riskScore: compositeRisk.riskScore,
+      priority: compositeRisk.priority,
+    });
   }
 
   res.json(prediction);
