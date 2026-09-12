@@ -96,8 +96,11 @@ export default function UploadImage() {
     }
   }, []);
 
-  const handleSelectFile = (selectedFile) => {
+  const [previewUrl, setPreviewUrl] = useState(null);
+
+  const handleSelectFile = (selectedFile, url) => {
     setFile(selectedFile);
+    setPreviewUrl(url);
     setPredictions([]);
     setAnalysisResult(null);
   };
@@ -151,6 +154,7 @@ export default function UploadImage() {
     navigate("/citizen/ai-result", { 
       state: { 
         prediction: analysisResult,
+        previewUrl: previewUrl || analysisResult.image,
         reportMeta: {
           location: locationName,
           coords,

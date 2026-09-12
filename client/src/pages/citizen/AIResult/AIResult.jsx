@@ -86,7 +86,7 @@ export default function AIResult() {
             </h3>
             <div className="rounded-xl overflow-hidden bg-slate-900/60">
               <BoundingBoxOverlay 
-                imageUrl={prediction.image} 
+                imageUrl={location.state?.previewUrl || prediction.image} 
                 predictions={boxes} 
               />
             </div>

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Sparkles, Scan, AlertTriangle } from "lucide-react";
+import { Sparkles, Scan, AlertTriangle, Image as ImageIcon } from "lucide-react";
 
 /**
  * Color configuration per target breeding class
@@ -50,6 +50,25 @@ const DEFAULT_COLOR = {
   border: "border-cyan-500",
 };
 
+export function resolveImageSrc(src) {
+  if (!src) return "";
+  if (
+    src.startsWith("blob:") ||
+    src.startsWith("data:") ||
+    src.startsWith("http://") ||
+    src.startsWith("https://")
+  ) {
+    return src;
+  }
+  if (src.startsWith("/uploads/")) {
+    return `http://localhost:5001${src}`;
+  }
+  if (src.startsWith("uploads/")) {
+    return `http://localhost:5001/${src}`;
+  }
+  return `http://localhost:5001${src.startsWith("/") ? "" : "/"}${src}`;
+}
+
 export default function BoundingBoxOverlay({
   imageUrl,
   predictions = [],
@@ -58,8 +77,15 @@ export default function BoundingBoxOverlay({
 }) {
   const [naturalDimensions, setNaturalDimensions] = useState({ width: 0, height: 0 });
   const [hoveredIdx, setHoveredIdx] = useState(null);
+  const [imgSrc, setImgSrc] = useState(resolveImageSrc(imageUrl));
+  const [imgError, setImgError] = useState(false);
   const containerRef = useRef(null);
   const imgRef = useRef(null);
+
+  useEffect(() => {
+    setImgSrc(resolveImageSrc(imageUrl));
+    setImgError(false);
+  }, [imageUrl]);
 
   const handleImageLoad = (e) => {
     const { naturalWidth, naturalHeight } = e.target;
@@ -67,6 +93,16 @@ export default function BoundingBoxOverlay({
       width: naturalWidth || 640,
       height: naturalHeight || 480,
     });
+    setImgError(false);
+  };
+
+  const handleImageError = () => {
+    if (imgSrc && !imgSrc.startsWith("http://localhost:5001")) {
+      // Try full backend origin
+      setImgSrc(`http://localhost:5001${imageUrl.startsWith("/") ? "" : "/"}${imageUrl}`);
+    } else {
+      setImgError(true);
+    }
   };
 
   // Normalize predictions list
@@ -77,16 +113,25 @@ export default function BoundingBoxOverlay({
   return (
     <div
       ref={containerRef}
-      className={`relative inline-block w-full overflow-hidden rounded-2xl bg-slate-950/40 select-none ${className}`}
+      className={`relative inline-block w-full overflow-hidden rounded-2xl bg-slate-950/40 select-none min-h-[220px] ${className}`}
     >
       {/* Target Image */}
-      <img
-        ref={imgRef}
-        src={imageUrl}
-        alt="Suspected mosquito breeding site"
-        onLoad={handleImageLoad}
-        className="block w-full h-auto max-h-[520px] object-contain mx-auto rounded-2xl transition-all duration-300"
-      />
+      {!imgError && imgSrc ? (
+        <img
+          ref={imgRef}
+          src={imgSrc}
+          alt="Suspected mosquito breeding site"
+          onLoad={handleImageLoad}
+          onError={handleImageError}
+          className="block w-full h-auto max-h-[520px] object-contain mx-auto rounded-2xl transition-all duration-300"
+        />
+      ) : (
+        <div className="flex flex-col items-center justify-center p-12 text-center text-muted-foreground gap-2">
+          <ImageIcon className="h-10 w-10 text-muted-foreground/50 animate-pulse" />
+          <p className="text-sm font-medium">Uploaded breeding site image preview</p>
+          <p className="text-xs opacity-75">Analysis &amp; bounding box coordinates active</p>
+        </div>
+      )}
 
       {/* SVG Bounding Boxes Overlay */}
       {naturalDimensions.width > 0 && validPredictions.length > 0 && (
@@ -171,7 +216,7 @@ export default function BoundingBoxOverlay({
                 />
                 {/* Top-Right Corner */}
                 <path
-                  d={`M ${xMax - cornerSize} ${yMin} L ${xMax} ${yMin} L ${xMax} ${yMin + cornerSize}`}
+                  d={`M ${xMax - cornerSize} ${yMin} L ${xMax} ${yMin} L ${xMax + cornerSize} ${yMin}`}
                   fill="none"
                   stroke={colorTheme.stroke}
                   strokeWidth="4"
@@ -187,7 +232,7 @@ export default function BoundingBoxOverlay({
                 />
                 {/* Bottom-Right Corner */}
                 <path
-                  d={`M ${xMax - cornerSize} ${yMax} L ${xMax} ${yMax} L ${xMax} ${yMax - cornerSize}`}
+                  d={`M ${xMax - cornerSize} ${yMax} L ${xMax} ${yMax} L ${xMax - cornerSize} ${yMax}`}
                   fill="none"
                   stroke={colorTheme.stroke}
                   strokeWidth="4"
