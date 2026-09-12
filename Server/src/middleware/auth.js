@@ -1,6 +1,8 @@
+import mongoose from "mongoose";
 import { verifyToken } from "../utils/jwt.js";
 import { ApiError } from "../utils/helpers.js";
 import User from "../models/user.js";
+import { usersStore } from "../data/stores.js";
 
 export async function verifyAuth(req, res, next) {
   const header = req.headers.authorization || "";
@@ -12,7 +14,18 @@ export async function verifyAuth(req, res, next) {
 
   try {
     const payload = verifyToken(token);
-    const user = await User.findOne({ id: payload.id }).lean();
+    let user = null;
+
+    if (mongoose.connection.readyState === 1) {
+      try {
+        user = await User.findOne({ id: payload.id }).lean();
+      } catch (e) {
+        user = usersStore.find((u) => u.id === payload.id);
+      }
+    } else {
+      user = usersStore.find((u) => u.id === payload.id);
+    }
+
     if (!user) return next(new ApiError(401, "User no longer exists"));
     req.user = user;
     next();
