@@ -996,5 +996,87 @@
     ],
     "createdAt": "2026-09-14T09:58:18.798Z",
     "feedback": null
+  },
+  {
+    "id": "PRED-2fc61d56",
+    "reportId": null,
+    "image": "/uploads/1789382558624-b65c48b4.jpg",
+    "label": "No Breeding Site Indicators",
+    "risk": "High",
+    "riskScore": 73,
+    "priority": "Immediate Inspection",
+    "confidence": 90.9,
+    "riskAssessment": {
+      "riskScore": 73,
+      "riskLevel": "High",
+      "priority": "Immediate Inspection",
+      "recommendedAction": "Immediate PHI field inspection & larvicide / source elimination required",
+      "breakdown": {
+        "ai": {
+          "weight": "40%",
+          "score": 55,
+          "weightedContribution": 22,
+          "detectedCount": 2
+        },
+        "weather": {
+          "weight": "20%",
+          "score": 95,
+          "weightedContribution": 19,
+          "details": {
+            "source": "Regional Climatological Model (Fallback)",
+            "temperature": 29.5,
+            "humidity": 80,
+            "rainfallMm": 14,
+            "condition": "Rain",
+            "weatherScore": 95
+          }
+        },
+        "history": {
+          "weight": "25%",
+          "score": 90,
+          "weightedContribution": 22.5,
+          "details": {
+            "matchedDistrict": "Colombo",
+            "historyScore": 90,
+            "historicalCasesWeeklyAvg": 145,
+            "zone": "High Risk"
+          }
+        },
+        "density": {
+          "weight": "15%",
+          "score": 60,
+          "weightedContribution": 9,
+          "details": {
+            "nearbyReportsCount": 2,
+            "radiusKm": 3,
+            "densityScore": 60
+          }
+        }
+      }
+    },
+    "detectedObjects": [
+      {
+        "label": "Coconut-Exocarp",
+        "conf": 91,
+        "bbox": {
+          "x_min": 107.48,
+          "y_min": 211.03,
+          "x_max": 310.79,
+          "y_max": 365.99
+        }
+      },
+      {
+        "label": "Coconut-Exocarp",
+        "conf": 27,
+        "bbox": {
+          "x_min": 0.08,
+          "y_min": 500.98,
+          "x_max": 8.44,
+          "y_max": 546.3
+        }
+      }
+    ],
+    "createdAt": "2026-09-14T10:42:39.252Z",
+    "feedback": null
   }
 ]

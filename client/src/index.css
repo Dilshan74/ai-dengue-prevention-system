@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 @import "./assets/styles/animations.css";
 
@@ -35,91 +35,94 @@
 }
 
 :root {
-  --radius: 0.75rem;
+  --radius: 0.5rem; /* Utilitarian, crisp border radius */
 
-  /* Premium Light Theme */
+  /* Precision Slate Base */
   --background: #f8fafc;
   --foreground: #0f172a;
   
-  /* Glass Card */
-  --card: rgba(255, 255, 255, 0.7);
+  /* Utilitarian Card */
+  --card: #ffffff;
   --card-foreground: #0f172a;
   
-  /* Original Primary */
-  --primary: #0d9488;
+  /* Deep Precision Teal (Primary) */
+  --primary: #0f766e;
   --primary-foreground: #ffffff;
   
-  /* Sleek Secondary */
-  --secondary: #e2e8f0;
-  --secondary-foreground: #334155;
+  /* Slate Neutral Secondary */
+  --secondary: #f1f5f9;
+  --secondary-foreground: #1e293b;
   
   --muted: #f1f5f9;
   --muted-foreground: #64748b;
   
-  --accent: #8b5cf6; /* Violet 500 */
+  /* Precision Cyan Accent (No Purple/Indigo) */
+  --accent: #0284c7;
   --accent-foreground: #ffffff;
   
-  --destructive: #ef4444;
+  /* Locked Status Colors */
+  --destructive: #dc2626; /* Crimson - High Risk */
   --destructive-foreground: #ffffff;
   
-  --success: #10b981;
-  --success-foreground: #ffffff;
-  
-  --warning: #f59e0b;
+  --warning: #d97706; /* Amber - Medium Risk */
   --warning-foreground: #ffffff;
   
-  --border: rgba(226, 232, 240, 0.6);
-  --input: #cbd5e1;
-  --ring: rgba(13, 148, 136, 0.5);
+  --success: #059669; /* Emerald - Low Risk */
+  --success-foreground: #ffffff;
   
-  --sidebar: #042f2e; /* teal-950 */
-  --sidebar-foreground: #ffffff;
-  --sidebar-accent: #0f766e; /* teal-700 */
+  --border: #e2e8f0;
+  --input: #cbd5e1;
+  --ring: rgba(15, 118, 110, 0.4);
+  
+  --sidebar: #042f2e; /* Deep Teal-950 */
+  --sidebar-foreground: #f8fafc;
+  --sidebar-accent: #115e59;
   --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: #042f2e;
+  --sidebar-border: #134e4a;
 }
 
 .dark {
-  /* Premium Dark Theme */
-  --background: #020617; /* Slate 950 */
+  /* Precision Slate Dark Base */
+  --background: #090d16;
   --foreground: #f8fafc;
   
-  /* Glass Card */
-  --card: rgba(15, 23, 42, 0.6);
+  /* High-density Dark Card */
+  --card: #0f172a;
   --card-foreground: #f8fafc;
   
-  /* Original Primary Dark */
-  --primary: #14b8a6; /* Teal 400 */
-  --primary-foreground: #020617;
+  /* High-contrast Teal (Dark) */
+  --primary: #14b8a6;
+  --primary-foreground: #042f2e;
   
-  /* Sleek Secondary */
   --secondary: #1e293b;
-  --secondary-foreground: #cbd5e1;
+  --secondary-foreground: #e2e8f0;
   
-  --muted: #0f172a;
+  --muted: #141d2e;
   --muted-foreground: #94a3b8;
   
-  --accent: #a78bfa; /* Violet 400 */
-  --accent-foreground: #020617;
+  /* Technical Cyan Accent */
+  --accent: #38bdf8;
+  --accent-foreground: #0c4a6e;
   
-  --destructive: #f87171;
-  --destructive-foreground: #020617;
+  /* Locked Status Colors (Dark) */
+  --destructive: #ef4444; /* Crimson */
+  --destructive-foreground: #450a0a;
   
-  --success: #34d399;
-  --success-foreground: #020617;
+  --warning: #f59e0b; /* Amber */
+  --warning-foreground: #451a03;
   
-  --warning: #fbbf24;
-  --warning-foreground: #020617;
+  --success: #10b981; /* Emerald */
+  --success-foreground: #022c22;
   
-  --border: rgba(51, 65, 85, 0.5);
+  --border: #1e293b;
   --input: #334155;
   --ring: rgba(20, 184, 166, 0.5);
   
-  --sidebar: #020617; /* Slate 950 */
+  --sidebar: #060b13;
   --sidebar-foreground: #f8fafc;
-  --sidebar-accent: rgba(20, 184, 166, 0.1);
-  --sidebar-accent-foreground: #14b8a6;
-  --sidebar-border: rgba(51, 65, 85, 0.5);
+  --sidebar-accent: rgba(20, 184, 166, 0.15);
+  --sidebar-accent-foreground: #2dd4bf;
+  --sidebar-border: #1e293b;
 }
 
 @layer base {
@@ -140,24 +143,39 @@
 }
 
 @utility card-shadow {
-  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05), 0 0 3px rgba(0,0,0,0.02);
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
 }
 
 .dark .card-shadow {
-  box-shadow: 0 4px 25px -2px rgba(0, 0, 0, 0.4), 0 0 3px rgba(0,0,0,0.2);
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3);
+}
+
+/* Precision Telemetry Monospace */
+.font-mono, .code-mono {
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+}
+
+/* Utilitarian Civic HUD Styling */
+@utility tech-grid {
+  background-size: 24px 24px;
+  background-image: 
+    linear-gradient(to right, rgba(15, 118, 110, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(15, 118, 110, 0.05) 1px, transparent 1px);
+}
+
+.dark .tech-grid {
+  background-image: 
+    linear-gradient(to right, rgba(20, 184, 166, 0.07) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(20, 184, 166, 0.07) 1px, transparent 1px);
 }
 
 @utility glass {
   background: var(--color-card);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--color-border);
 }
 
 @utility glass-sidebar {
   background: var(--color-sidebar);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
   border-right: 1px solid var(--color-sidebar-border);
 }
 

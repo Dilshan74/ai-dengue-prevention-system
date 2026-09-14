@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Eye, FileSearch, Plus, RefreshCw } from "lucide-react";
+import { Eye, FileSearch, Plus, RefreshCw, ShieldAlert, Clock, CheckCircle2, AlertTriangle, Layers } from "lucide-react";
 import { toast } from "sonner";
 import Badge from "../../../components/common/Badge";
 import Button from "../../../components/common/Button";
@@ -10,12 +10,12 @@ import Pagination from "../../../components/common/Pagination";
 import SearchBar from "../../../components/common/SearchBar";
 import Table from "../../../components/common/Table";
 import { Select } from "../../../components/common/Field";
-import { STATUS_TINT, REPORT_STATUSES } from "../../../utils/constants";
+import { STATUS_TINT, RISK_TINT, REPORT_STATUSES } from "../../../utils/constants";
 import { paginate, totalPages } from "../../../utils/helpers";
 import citizenService from "../../../services/citizenService";
 import CreateComplaint from "./CreateComplaint";
 
-const PER_PAGE = 5;
+const PER_PAGE = 8;
 
 function timeAgo(dateStr) {
   if (!dateStr) return "—";
@@ -65,7 +65,8 @@ export default function TrackComplaint() {
         (!q ||
           r.id?.toLowerCase().includes(q) ||
           r.location?.toLowerCase().includes(q) ||
-          r.phi?.toLowerCase().includes(q))
+          r.phi?.toLowerCase().includes(q) ||
+          r.risk?.toLowerCase().includes(q))
     );
   }, [reports, query, status]);
 
@@ -73,57 +74,70 @@ export default function TrackComplaint() {
   const currentPage = Math.min(page, Math.max(1, pageCount));
   const rows = paginate(filtered, currentPage, PER_PAGE);
 
+  // Telemetry counters
+  const totalCount = reports.length;
+  const highRiskCount = reports.filter(r => r.risk === "High").length;
+  const pendingCount = reports.filter(r => r.status === "Pending" || r.status === "Under Review").length;
+  const resolvedCount = reports.filter(r => r.status === "Resolved" || r.status === "Inspection Completed").length;
+
   const columns = [
-    { key: "id", header: "ID", className: "font-semibold text-primary" },
+    { 
+      key: "id", 
+      header: "REPORT ID", 
+      className: "font-mono text-xs font-semibold text-teal-600 dark:text-teal-400" 
+    },
     {
       key: "image",
-      header: "Image",
+      header: "EVIDENCE",
       render: (row) => (
-        <div className="grid h-9 w-9 place-items-center rounded-lg bg-muted text-lg overflow-hidden">
+        <div className="h-8 w-8 rounded border border-border bg-slate-900 flex items-center justify-center overflow-hidden">
           {row.images?.[0] ? (
-            <img src={row.images[0]} alt="report" className="h-full w-full object-cover" />
+            <img src={row.images[0]} alt="evidence" className="h-full w-full object-cover" />
           ) : (
-            <span>{row.image || "🪣"}</span>
+            <span className="text-xs">{row.image || "🪣"}</span>
           )}
         </div>
       ),
     },
+    { 
+      key: "risk", 
+      header: "RISK LEVEL",
+      render: (row) => (
+        <Badge className={`font-mono text-[11px] uppercase ${RISK_TINT[row.risk] || "bg-muted text-muted-foreground"}`}>
+          {row.risk || "Medium"}
+        </Badge>
+      )
+    },
     {
       key: "date",
-      header: "Date",
-      className: "whitespace-nowrap text-muted-foreground",
+      header: "LOGGED DATE",
+      className: "whitespace-nowrap font-mono text-xs text-muted-foreground",
       render: (row) => row.date ? new Date(row.date).toISOString().slice(0, 10) : "—",
     },
-    { key: "location", header: "Location", className: "whitespace-nowrap" },
+    { key: "location", header: "INCIDENT LOCATION", className: "whitespace-nowrap text-xs font-medium" },
     {
       key: "status",
-      header: "Status",
+      header: "INSPECTION STATUS",
       render: (row) => (
-        <Badge className={STATUS_TINT[row.status] ?? "bg-muted text-muted-foreground"}>
+        <Badge className={`font-mono text-[11px] uppercase ${STATUS_TINT[row.status] ?? "bg-muted text-muted-foreground"}`}>
           {row.status}
         </Badge>
       ),
     },
     {
       key: "phi",
-      header: "Assigned PHI",
-      className: "whitespace-nowrap",
+      header: "ASSIGNED PHI",
+      className: "whitespace-nowrap text-xs text-muted-foreground font-mono",
       render: (row) => row.phi || "—",
     },
     {
-      key: "updated",
-      header: "Last Updated",
-      className: "whitespace-nowrap text-muted-foreground",
-      render: (row) => timeAgo(row.updated),
-    },
-    {
       key: "action",
-      header: "Action",
+      header: "AUDIT",
       headerClassName: "text-right",
       className: "text-right",
       render: (row) => (
-        <Button as={Link} to={`/citizen/track/${row.id}`} size="sm" variant="ghost">
-          <Eye className="h-3.5 w-3.5" /> View
+        <Button as={Link} to={`/citizen/track/${row.id}`} size="sm" variant="outline" className="font-mono text-xs h-7 px-2">
+          <Eye className="h-3 w-3 mr-1" /> AUDIT
         </Button>
       ),
     },
@@ -132,89 +146,132 @@ export default function TrackComplaint() {
   return (
     <>
       <PageHeader
-        title="Track your complaints"
-        description="Every report you've submitted, in one place."
+        title="Surveillance Incidents &amp; Complaint Registry"
+        description="Official audit registry of citizen-reported mosquito breeding sites and PHI inspection queue status."
         action={
           <div className="flex items-center gap-2">
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
               onClick={fetchReports}
               disabled={loading}
-              title="Refresh"
+              title="Refresh Registry"
+              className="font-mono text-xs"
             >
-              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+              <RefreshCw className={`h-3.5 w-3.5 mr-1 ${loading ? "animate-spin" : ""}`} /> REFRESH
             </Button>
-            <Button size="sm" onClick={() => setShowCreate(true)}>
-              <Plus className="h-4 w-4" /> New Complaint
+            <Button 
+              size="sm" 
+              onClick={() => setShowCreate(true)}
+              className="font-mono text-xs"
+            >
+              <Plus className="h-3.5 w-3.5 mr-1" /> NEW REPORT
             </Button>
           </div>
         }
       />
 
-      <div className="soft-shadow rounded-2xl border border-border bg-card">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-4">
+      {/* Utilitarian Telemetry Counters */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5 font-mono">
+        <div className="p-3 rounded-lg border border-border bg-card">
+          <div className="flex items-center justify-between text-muted-foreground text-xs">
+            <span>TOTAL REPORTS</span>
+            <Layers className="h-3.5 w-3.5 text-teal-600 dark:text-teal-400" />
+          </div>
+          <div className="text-xl font-bold text-foreground mt-1">{totalCount}</div>
+        </div>
+
+        <div className="p-3 rounded-lg border border-rose-500/20 bg-rose-500/5">
+          <div className="flex items-center justify-between text-rose-700 dark:text-rose-400 text-xs">
+            <span>HIGH RISK SITES</span>
+            <AlertTriangle className="h-3.5 w-3.5 text-rose-600 dark:text-rose-400" />
+          </div>
+          <div className="text-xl font-bold text-rose-700 dark:text-rose-400 mt-1">{highRiskCount}</div>
+        </div>
+
+        <div className="p-3 rounded-lg border border-amber-500/20 bg-amber-500/5">
+          <div className="flex items-center justify-between text-amber-700 dark:text-amber-400 text-xs">
+            <span>ACTIVE QUEUE</span>
+            <Clock className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+          </div>
+          <div className="text-xl font-bold text-amber-700 dark:text-amber-400 mt-1">{pendingCount}</div>
+        </div>
+
+        <div className="p-3 rounded-lg border border-emerald-500/20 bg-emerald-500/5">
+          <div className="flex items-center justify-between text-emerald-700 dark:text-emerald-400 text-xs">
+            <span>VERIFIED / RESOLVED</span>
+            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+          </div>
+          <div className="text-xl font-bold text-emerald-700 dark:text-emerald-400 mt-1">{resolvedCount}</div>
+        </div>
+      </div>
+
+      {/* Complaints Table Container */}
+      <div className="rounded-lg border border-border bg-card overflow-hidden">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-3.5 bg-muted/20">
           <SearchBar
             value={query}
             onChange={(value) => { setQuery(value); setPage(1); }}
-            placeholder="Search by ID or location…"
-            className="flex-1 sm:max-w-sm"
+            placeholder="Search report ID, location, or PHI officer…"
+            className="w-full sm:w-72 font-mono text-xs"
           />
-          <Select
-            className="h-10 w-48"
-            value={status}
-            onChange={(e) => { setStatus(e.target.value); setPage(1); }}
-            options={[
-              { value: "all", label: "All statuses" },
-              ...REPORT_STATUSES.map((s) => ({ value: s, label: s })),
-            ]}
-          />
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-xs text-muted-foreground uppercase">FILTER:</span>
+            <Select
+              value={status}
+              onChange={(e) => { setStatus(e.target.value); setPage(1); }}
+              options={[
+                { value: "all", label: "All Statuses" },
+                ...REPORT_STATUSES.map((s) => ({ value: s, label: s })),
+              ]}
+              className="w-44 font-mono text-xs"
+            />
+          </div>
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center py-16 text-muted-foreground">
-            <RefreshCw className="mr-2 h-5 w-5 animate-spin" /> Loading complaints…
+          <div className="p-12 text-center text-xs font-mono text-muted-foreground">
+            <RefreshCw className="h-5 w-5 animate-spin mx-auto text-teal-600 dark:text-teal-400 mb-2" />
+            SYNCHRONIZING AUDIT REGISTRY...
           </div>
-        ) : (
-          <Table
-            columns={columns}
-            rows={rows}
-            empty={
-              <EmptyState
-                icon={FileSearch}
-                title="No complaints found"
-                description={
-                  reports.length === 0
-                    ? "You haven't submitted any complaints yet. Click \"New Complaint\" to get started."
-                    : "Try a different search term or status filter."
-                }
-                action={
-                  reports.length === 0 && (
-                    <Button size="sm" onClick={() => setShowCreate(true)}>
-                      <Plus className="h-4 w-4" /> New Complaint
-                    </Button>
-                  )
-                }
-                className="m-4"
-              />
+        ) : rows.length === 0 ? (
+          <EmptyState
+            icon={FileSearch}
+            title="No matching surveillance records"
+            description={
+              query || status !== "all"
+                ? "Try clearing query parameters to view all active reports."
+                : "No incident reports logged yet in your GN surveillance sector."
+            }
+            action={
+              (query || status !== "all") && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => { setQuery(""); setStatus("all"); }}
+                  className="font-mono text-xs"
+                >
+                  RESET FILTERS
+                </Button>
+              )
             }
           />
-        )}
-
-        {!loading && filtered.length > 0 && (
-          <Pagination
-            page={currentPage}
-            pageCount={pageCount}
-            total={filtered.length}
-            perPage={PER_PAGE}
-            onChange={setPage}
-          />
+        ) : (
+          <>
+            <Table columns={columns} data={rows} className="font-sans" />
+            <div className="border-t border-border p-3 flex justify-between items-center bg-muted/10 font-mono text-xs text-muted-foreground">
+              <span>SHOWING {rows.length} OF {filtered.length} RECORDS</span>
+              {pageCount > 1 && (
+                <Pagination page={currentPage} totalPages={pageCount} onChange={setPage} />
+              )}
+            </div>
+          </>
         )}
       </div>
 
-      {/* New Complaint Modal */}
       {showCreate && (
         <CreateComplaint
+          open={showCreate}
           onClose={() => setShowCreate(false)}
           onCreated={() => {
             setShowCreate(false);

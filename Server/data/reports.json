@@ -291,5 +291,131 @@
         "comments": "Report submitted & queued for PHI review"
       }
     ]
+  },
+  {
+    "id": "DG-1048",
+    "citizenId": "U-7445b258",
+    "citizenName": "Citizen Demo",
+    "description": "AI Detected Vase, Vase, Bottle, Bottle with 96.1% confidence.",
+    "location": "GPS: 6.8185° N, 79.8944° E",
+    "address": "GPS: 6.8185° N, 79.8944° E",
+    "lat": 6.818519877375166,
+    "lng": 79.89444121885148,
+    "category": "container",
+    "image": "/uploads/1789379898258-8ff2df60.jpg",
+    "images": [
+      "/uploads/1789379898258-8ff2df60.jpg"
+    ],
+    "status": "Pending",
+    "risk": "High",
+    "riskScore": 84,
+    "priority": "Immediate Inspection",
+    "predictions": [
+      {
+        "class": "Vase",
+        "confidence": 0.96,
+        "bbox": {
+          "x_min": 100.42,
+          "y_min": 345.08,
+          "x_max": 218.53,
+          "y_max": 617.67
+        }
+      },
+      {
+        "class": "Vase",
+        "confidence": 0.91,
+        "bbox": {
+          "x_min": 262.08,
+          "y_min": 192.38,
+          "x_max": 309.92,
+          "y_max": 303.69
+        }
+      },
+      {
+        "class": "Bottle",
+        "confidence": 0.87,
+        "bbox": {
+          "x_min": 223.48,
+          "y_min": 302.86,
+          "x_max": 270.76,
+          "y_max": 346.74
+        }
+      },
+      {
+        "class": "Bottle",
+        "confidence": 0.72,
+        "bbox": {
+          "x_min": 241.23,
+          "y_min": 212.9,
+          "x_max": 265.55,
+          "y_max": 293.77
+        }
+      }
+    ],
+    "phi": "—",
+    "phiId": null,
+    "date": "2026-09-14",
+    "updated": "2026-09-14T10:42:20.959Z",
+    "comments": [],
+    "history": [
+      {
+        "status": "Pending",
+        "date": "2026-09-14T10:42:20.959Z",
+        "comments": "Report submitted & queued for PHI review"
+      }
+    ]
+  },
+  {
+    "id": "DG-1049",
+    "citizenId": "U-7445b258",
+    "citizenName": "Citizen Demo",
+    "description": "AI Detected Coconut-Exocarp, Coconut-Exocarp with 90.9% confidence.",
+    "location": "Colombo, Sri Lanka",
+    "address": "Colombo, Sri Lanka",
+    "lat": 6.818527556128048,
+    "lng": 79.89448467835504,
+    "category": "container",
+    "image": "/uploads/1789382558624-b65c48b4.jpg",
+    "images": [
+      "/uploads/1789382558624-b65c48b4.jpg"
+    ],
+    "status": "Pending",
+    "risk": "High",
+    "riskScore": 73,
+    "priority": "Immediate Inspection",
+    "predictions": [
+      {
+        "class": "Coconut-Exocarp",
+        "confidence": 0.91,
+        "bbox": {
+          "x_min": 107.48,
+          "y_min": 211.03,
+          "x_max": 310.79,
+          "y_max": 365.99
+        }
+      },
+      {
+        "class": "Coconut-Exocarp",
+        "confidence": 0.27,
+        "bbox": {
+          "x_min": 0.08,
+          "y_min": 500.98,
+          "x_max": 8.44,
+          "y_max": 546.3
+        }
+      }
+    ],
+    "phi": "—",
+    "phiId": null,
+    "date": "2026-09-14",
+    "updated": "2026-09-14T10:42:47.757Z",
+    "comments": [],
+    "history": [
+      {
+        "status": "Pending",
+        "date": "2026-09-14T10:42:47.757Z",
+        "comments": "Report submitted & queued for PHI review"
+      }
+    ]
   }
 ]

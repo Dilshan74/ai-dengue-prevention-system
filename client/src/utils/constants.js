@@ -24,21 +24,21 @@ export const REPORT_STATUSES = [
 ];
 
 export const STATUS_TINT = {
-  Pending: "bg-muted text-muted-foreground",
-  "Under Review": "bg-info/15 text-info",
-  Accepted: "bg-success/15 text-success",
-  "Inspection Scheduled": "bg-primary/15 text-primary",
-  "Inspection Completed": "bg-primary/15 text-primary",
-  Resolved: "bg-success/15 text-success",
-  Rejected: "bg-destructive/15 text-destructive",
-  Escalated: "bg-warning/15 text-warning",
-  Reviewed: "bg-info/15 text-info",
+  Pending: "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700",
+  "Under Review": "bg-cyan-500/10 text-cyan-700 dark:text-cyan-400 border border-cyan-500/30",
+  Accepted: "bg-teal-500/10 text-teal-700 dark:text-teal-400 border border-teal-500/30",
+  "Inspection Scheduled": "bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/30",
+  "Inspection Completed": "bg-teal-500/10 text-teal-700 dark:text-teal-400 border border-teal-500/30",
+  Resolved: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30",
+  Rejected: "bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/30",
+  Escalated: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/30",
+  Reviewed: "bg-cyan-500/10 text-cyan-700 dark:text-cyan-400 border border-cyan-500/30",
 };
 
 export const RISK_TINT = {
-  High: "bg-destructive/15 text-destructive",
-  Medium: "bg-warning/15 text-warning",
-  Low: "bg-success/15 text-success",
+  High: "bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/30",
+  Medium: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/30",
+  Low: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30",
 };
 
 export const RISK_MARKER = {

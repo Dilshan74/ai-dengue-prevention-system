@@ -1,15 +1,24 @@
-export default function PageHeader({ title, description, action }) {
+export default function PageHeader({ title, description, action, badge }) {
   return (
-    <div className="mb-8 flex flex-wrap items-start justify-between gap-4 slide-in-right">
+    <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-border/80 pb-4">
       <div className="min-w-0">
-        <h2 className="text-xl sm:text-2xl font-semibold tracking-tight bg-gradient-to-br from-foreground to-foreground/70 bg-clip-text text-transparent">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="h-1.5 w-1.5 rounded-full bg-teal-500" />
+          <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+            DENGUEGUARD SURVEILLANCE CONSOLE
+          </span>
+          {badge}
+        </div>
+        <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
           {title}
-        </h2>
+        </h1>
         {description && (
-          <p className="mt-1.5 text-sm font-normal text-muted-foreground delay-100 slide-in-right">{description}</p>
+          <p className="mt-1 text-xs sm:text-sm text-muted-foreground">
+            {description}
+          </p>
         )}
       </div>
-      {action && <div className="shrink-0 delay-200 slide-in-right">{action}</div>}
+      {action && <div className="shrink-0 flex items-center gap-2">{action}</div>}
     </div>
   );
 }
