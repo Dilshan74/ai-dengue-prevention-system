@@ -1,0 +1,52 @@
+[
+  {
+    "id": "A-01",
+    "name": "Nugegoda",
+    "risk": "High",
+    "phi": "I. Perera",
+    "phiId": "U-1866c4e7",
+    "reports": 82,
+    "x": 32,
+    "y": 45
+  },
+  {
+    "id": "A-02",
+    "name": "Rajagiriya",
+    "risk": "Medium",
+    "phi": "S. Fernando",
+    "phiId": "U-a4aca70b",
+    "reports": 47,
+    "x": 55,
+    "y": 30
+  },
+  {
+    "id": "A-03",
+    "name": "Maharagama",
+    "risk": "High",
+    "phi": "I. Perera",
+    "phiId": "U-1866c4e7",
+    "reports": 91,
+    "x": 22,
+    "y": 68
+  },
+  {
+    "id": "A-04",
+    "name": "Dehiwala",
+    "risk": "Low",
+    "phi": "S. Fernando",
+    "phiId": "U-a4aca70b",
+    "reports": 24,
+    "x": 68,
+    "y": 60
+  },
+  {
+    "id": "A-05",
+    "name": "Kotte",
+    "risk": "Medium",
+    "phi": "I. Perera",
+    "phiId": "U-1866c4e7",
+    "reports": 39,
+    "x": 78,
+    "y": 42
+  }
+]

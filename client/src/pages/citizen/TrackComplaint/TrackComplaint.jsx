@@ -44,7 +44,10 @@ export default function TrackComplaint() {
       const data = await citizenService.complaints({ pageSize: 100 });
       setReports(data.data ?? data ?? []);
     } catch (err) {
-      toast.error(err?.response?.data?.message ?? "Failed to load complaints");
+      console.error("Failed to load complaints:", err);
+      toast.error(err?.response?.data?.message ?? "Failed to load complaints", {
+        id: "track-complaints-error",
+      });
     } finally {
       setLoading(false);
     }

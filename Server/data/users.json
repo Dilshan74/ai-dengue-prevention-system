@@ -1,0 +1,58 @@
+[
+  {
+    "id": "U-7445b258",
+    "name": "Citizen Demo",
+    "email": "citizen@dengueguard.lk",
+    "mobile": "0771234567",
+    "address": "Nugegoda, Ward 12",
+    "passwordHash": "$2a$10$qZBY3uRSCuNXdCE4Pvqe7.YbuOcFf33PgfVC5n7iwE9H1ckfNx15a",
+    "role": "citizen",
+    "area": "Nugegoda",
+    "status": "Active",
+    "joined": "2025-11-02"
+  },
+  {
+    "id": "U-1866c4e7",
+    "name": "I. Perera",
+    "email": "phi@dengueguard.lk",
+    "mobile": "0779876543",
+    "passwordHash": "$2a$10$qZBY3uRSCuNXdCE4Pvqe7.YbuOcFf33PgfVC5n7iwE9H1ckfNx15a",
+    "role": "phi",
+    "area": "Nugegoda",
+    "inspections": 128,
+    "rating": 4.8,
+    "status": "Active"
+  },
+  {
+    "id": "U-9e57feca",
+    "name": "Admin User",
+    "email": "admin@dengueguard.lk",
+    "mobile": "0775551234",
+    "passwordHash": "$2a$10$qZBY3uRSCuNXdCE4Pvqe7.YbuOcFf33PgfVC5n7iwE9H1ckfNx15a",
+    "role": "admin",
+    "status": "Active"
+  },
+  {
+    "id": "U-6a030751",
+    "name": "Nimal Perera",
+    "email": "nimal@example.lk",
+    "mobile": "0712223333",
+    "address": "Nugegoda",
+    "passwordHash": "$2a$10$qZBY3uRSCuNXdCE4Pvqe7.YbuOcFf33PgfVC5n7iwE9H1ckfNx15a",
+    "role": "citizen",
+    "area": "Nugegoda",
+    "status": "Active",
+    "joined": "2025-11-02"
+  },
+  {
+    "id": "U-a4aca70b",
+    "name": "S. Fernando",
+    "email": "s.fernando@moh.lk",
+    "passwordHash": "$2a$10$qZBY3uRSCuNXdCE4Pvqe7.YbuOcFf33PgfVC5n7iwE9H1ckfNx15a",
+    "role": "phi",
+    "area": "Rajagiriya",
+    "inspections": 96,
+    "rating": 4.6,
+    "status": "Active"
+  }
+]

@@ -1,0 +1,295 @@
+[
+  {
+    "id": "DG-1042",
+    "citizenId": "U-7445b258",
+    "citizenName": "Citizen Demo",
+    "description": "Stagnant water in a discarded bucket near the drain.",
+    "location": "Nugegoda, Ward 12",
+    "address": "Nugegoda, Ward 12",
+    "lat": 6.8721,
+    "lng": 79.889,
+    "image": "🪣",
+    "images": [],
+    "status": "Under Review",
+    "risk": "High",
+    "phi": "I. Perera",
+    "phiId": "U-1866c4e7",
+    "date": "2026-07-24",
+    "updated": "2026-09-12T10:21:03.772Z",
+    "comments": [],
+    "history": [
+      {
+        "status": "Pending",
+        "date": "2026-07-24",
+        "comments": "Report submitted"
+      }
+    ]
+  },
+  {
+    "id": "DG-1039",
+    "citizenId": "U-7445b258",
+    "citizenName": "Citizen Demo",
+    "description": "Overgrown vegetation trapping rainwater in a flower pot.",
+    "location": "Rajagiriya, Ward 7",
+    "address": "Rajagiriya, Ward 7",
+    "lat": 6.9091,
+    "lng": 79.8952,
+    "image": "🌱",
+    "images": [],
+    "status": "Accepted",
+    "risk": "Medium",
+    "phi": "S. Fernando",
+    "phiId": "U-a4aca70b",
+    "date": "2026-07-22",
+    "updated": "2026-09-12T10:21:03.774Z",
+    "comments": [],
+    "history": [
+      {
+        "status": "Pending",
+        "date": "2026-07-22",
+        "comments": "Report submitted"
+      }
+    ]
+  },
+  {
+    "id": "DG-1043",
+    "citizenId": "U-7445b258",
+    "citizenName": "Citizen Demo",
+    "description": "AI Detected Drain-Inlet with 79.7% confidence.",
+    "location": "Moratuwa, Western Province",
+    "address": "Moratuwa, Western Province",
+    "lat": 6.818462541537582,
+    "lng": 79.89444097439747,
+    "category": "container",
+    "image": "/uploads/1789369923391-fe076b4e.jpg",
+    "images": [
+      "/uploads/1789369923391-fe076b4e.jpg"
+    ],
+    "status": "Pending",
+    "risk": "Medium",
+    "riskScore": 65,
+    "priority": "Moderate",
+    "predictions": [
+      {
+        "class": "Drain-Inlet",
+        "confidence": "0.8",
+        "bbox": {
+          "x_min": "377.08",
+          "y_min": "332.27",
+          "x_max": "545.17",
+          "y_max": "399.55"
+        }
+      }
+    ],
+    "phi": "—",
+    "phiId": null,
+    "date": "2026-09-14",
+    "updated": "2026-09-14T07:12:56.988Z",
+    "comments": [],
+    "history": [
+      {
+        "status": "Pending",
+        "date": "2026-09-14T07:12:56.988Z",
+        "comments": "Report submitted & queued for PHI review"
+      }
+    ]
+  },
+  {
+    "id": "DG-1043",
+    "citizenId": "U-7445b258",
+    "citizenName": "Citizen Demo",
+    "description": "Test complaint from script",
+    "location": "Colombo 07",
+    "address": "Colombo 07",
+    "lat": 6.9044,
+    "lng": 79.8682,
+    "category": "container",
+    "image": "🪣",
+    "images": [],
+    "status": "Pending",
+    "risk": "High",
+    "riskScore": 85,
+    "priority": "Immediate Inspection",
+    "predictions": [],
+    "phi": "—",
+    "phiId": null,
+    "date": "2026-09-14",
+    "updated": "2026-09-14T10:02:06.097Z",
+    "comments": [],
+    "history": [
+      {
+        "status": "Pending",
+        "date": "2026-09-14T10:02:06.097Z",
+        "comments": "Report submitted & queued for PHI review"
+      }
+    ]
+  },
+  {
+    "id": "DG-1043",
+    "citizenId": "U-7445b258",
+    "citizenName": "Citizen Demo",
+    "description": "AI Detected Coconut-Exocarp with 91% confidence.",
+    "location": "Nugegoda, Ward 12",
+    "address": "Nugegoda, Ward 12",
+    "lat": 6.8712,
+    "lng": 79.889,
+    "category": "container",
+    "image": "/uploads/1789369923391-fe076b4e.jpg",
+    "images": [
+      "/uploads/1789369923391-fe076b4e.jpg"
+    ],
+    "status": "Pending",
+    "risk": "High",
+    "riskScore": 84,
+    "priority": "Immediate Inspection",
+    "predictions": [
+      {
+        "class": "Coconut-Exocarp",
+        "confidence": 0.91,
+        "bbox": {
+          "x_min": 100,
+          "y_min": 100,
+          "x_max": 200,
+          "y_max": 200
+        }
+      }
+    ],
+    "phi": "—",
+    "phiId": null,
+    "date": "2026-09-14",
+    "updated": "2026-09-14T10:11:22.642Z",
+    "comments": [],
+    "history": [
+      {
+        "status": "Pending",
+        "date": "2026-09-14T10:11:22.642Z",
+        "comments": "Report submitted & queued for PHI review"
+      }
+    ]
+  },
+  {
+    "id": "DG-1044",
+    "citizenId": "U-7445b258",
+    "citizenName": "Citizen Demo",
+    "description": "Test automated complaint creation",
+    "location": "Dehiwala, Western Province",
+    "address": "Dehiwala, Western Province",
+    "lat": null,
+    "lng": null,
+    "category": "container",
+    "image": "🪣",
+    "images": [],
+    "status": "Pending",
+    "risk": "High",
+    "riskScore": 88,
+    "priority": "Immediate Inspection",
+    "predictions": [
+      {
+        "class": "Discarded-Tire",
+        "confidence": 0.94
+      }
+    ],
+    "phi": "—",
+    "phiId": null,
+    "date": "2026-09-14",
+    "updated": "2026-09-14T10:30:15.265Z",
+    "comments": [],
+    "history": [
+      {
+        "status": "Pending",
+        "date": "2026-09-14T10:30:15.265Z",
+        "comments": "Report submitted & queued for PHI review"
+      }
+    ]
+  },
+  {
+    "id": "DG-1045",
+    "citizenId": "U-7445b258",
+    "citizenName": "Citizen Demo",
+    "description": "Testing nodemon stability after complaint submission",
+    "location": "Nugegoda, Western Province",
+    "address": "Nugegoda, Western Province",
+    "lat": null,
+    "lng": null,
+    "category": "container",
+    "image": "🪣",
+    "images": [],
+    "status": "Pending",
+    "risk": "Medium",
+    "riskScore": 62,
+    "priority": "Moderate",
+    "predictions": [],
+    "phi": "—",
+    "phiId": null,
+    "date": "2026-09-14",
+    "updated": "2026-09-14T10:32:34.552Z",
+    "comments": [],
+    "history": [
+      {
+        "status": "Pending",
+        "date": "2026-09-14T10:32:34.552Z",
+        "comments": "Report submitted & queued for PHI review"
+      }
+    ]
+  },
+  {
+    "id": "DG-1046",
+    "citizenId": "U-7445b258",
+    "citizenName": "Citizen Demo",
+    "description": "Testing if nodemon reloads on write",
+    "location": "Colombo 03",
+    "address": "Colombo 03",
+    "lat": null,
+    "lng": null,
+    "category": "container",
+    "image": "🪣",
+    "images": [],
+    "status": "Pending",
+    "risk": "Low",
+    "riskScore": 25,
+    "priority": "Low",
+    "predictions": [],
+    "phi": "—",
+    "phiId": null,
+    "date": "2026-09-14",
+    "updated": "2026-09-14T10:33:14.223Z",
+    "comments": [],
+    "history": [
+      {
+        "status": "Pending",
+        "date": "2026-09-14T10:33:14.223Z",
+        "comments": "Report submitted & queued for PHI review"
+      }
+    ]
+  },
+  {
+    "id": "DG-1047",
+    "citizenId": "U-7445b258",
+    "citizenName": "Citizen Demo",
+    "description": "Testing zero-restart persistence",
+    "location": "Maharagama",
+    "address": "Maharagama",
+    "lat": null,
+    "lng": null,
+    "category": "container",
+    "image": "🪣",
+    "images": [],
+    "status": "Pending",
+    "risk": "High",
+    "riskScore": 82,
+    "priority": "Immediate Inspection",
+    "predictions": [],
+    "phi": "—",
+    "phiId": null,
+    "date": "2026-09-14",
+    "updated": "2026-09-14T10:35:18.865Z",
+    "comments": [],
+    "history": [
+      {
+        "status": "Pending",
+        "date": "2026-09-14T10:35:18.865Z",
+        "comments": "Report submitted & queued for PHI review"
+      }
+    ]
+  }
+]

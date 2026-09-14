@@ -1,0 +1,22 @@
+[
+  {
+    "id": "N-fc89d547",
+    "userId": "U-7445b258",
+    "role": "citizen",
+    "type": "info",
+    "title": "Inspection Scheduled",
+    "body": "PHI I. Perera will visit DG-1042 on Aug 25.",
+    "read": false,
+    "createdAt": "2026-09-12T10:21:03.776Z"
+  },
+  {
+    "id": "N-e2313702",
+    "userId": "U-1866c4e7",
+    "role": "phi",
+    "type": "warning",
+    "title": "Overdue inspection",
+    "body": "DG-1031 inspection is overdue by 1 day.",
+    "read": false,
+    "createdAt": "2026-09-12T10:21:03.776Z"
+  }
+]

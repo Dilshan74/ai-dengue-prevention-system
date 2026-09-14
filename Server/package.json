@@ -6,7 +6,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js",
+    "dev": "nodemon --watch src --watch server.js --ignore data/ --ignore src/data/ --ignore uploads/ --ignore \"*.json\" server.js",
     "seed": "node src/seed.js",
     "db:create": "node src/initDB.js"
   },

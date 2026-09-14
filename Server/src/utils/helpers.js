@@ -4,11 +4,27 @@ import { v4 as uuid } from "uuid";
 export const asyncHandler = (fn) => (req, res, next) =>
   Promise.resolve(fn(req, res, next)).catch(next);
 
+import { reportsStore } from "../data/stores.js";
+
 /** Sequential, human-friendly report IDs like DG-1042. */
 let reportCounter = 1042;
 export function nextReportId() {
-  reportCounter += 1;
-  return `DG-${reportCounter}`;
+  try {
+    const all = reportsStore.all ? reportsStore.all() : [];
+    let max = reportCounter;
+    for (const r of all) {
+      const match = r.id?.match(/DG-(\d+)/);
+      if (match) {
+        const num = parseInt(match[1], 10);
+        if (num > max) max = num;
+      }
+    }
+    reportCounter = max + 1;
+    return `DG-${reportCounter}`;
+  } catch {
+    reportCounter += 1;
+    return `DG-${reportCounter}`;
+  }
 }
 
 export function nextId(prefix) {
