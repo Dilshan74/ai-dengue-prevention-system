@@ -417,5 +417,219 @@
         "comments": "Report submitted & queued for PHI review"
       }
     ]
+  },
+  {
+    "id": "DG-1050",
+    "citizenId": "U-7445b258",
+    "citizenName": "Citizen Demo",
+    "description": "AI Detected Coconut-Exocarp, Coconut-Exocarp with 90.9% confidence.",
+    "location": "Maharagama, Western Province",
+    "address": "Maharagama, Western Province",
+    "lat": 6.818515516679586,
+    "lng": 79.89460664492302,
+    "category": "container",
+    "image": "/uploads/1789404007746-3f2a2018.jpg",
+    "images": [
+      "/uploads/1789404007746-3f2a2018.jpg"
+    ],
+    "status": "Pending",
+    "risk": "Medium",
+    "riskScore": 69,
+    "priority": "Moderate",
+    "predictions": [
+      {
+        "class": "Coconut-Exocarp",
+        "confidence": 0.91,
+        "bbox": {
+          "x_min": 107.48,
+          "y_min": 211.03,
+          "x_max": 310.79,
+          "y_max": 365.99
+        }
+      },
+      {
+        "class": "Coconut-Exocarp",
+        "confidence": 0.27,
+        "bbox": {
+          "x_min": 0.08,
+          "y_min": 500.98,
+          "x_max": 8.44,
+          "y_max": 546.3
+        }
+      }
+    ],
+    "phi": "—",
+    "phiId": null,
+    "date": "2026-09-14",
+    "updated": "2026-09-14T16:40:20.403Z",
+    "comments": [],
+    "history": [
+      {
+        "status": "Pending",
+        "date": "2026-09-14T16:40:20.403Z",
+        "comments": "Report submitted & queued for PHI review"
+      }
+    ]
+  },
+  {
+    "id": "DG-1051",
+    "citizenId": "U-7445b258",
+    "citizenName": "Citizen Demo",
+    "description": "AI Detected Vase, Vase, Bottle, Bottle with 96.1% confidence.",
+    "location": "Moratuwa, Western Province",
+    "address": "Moratuwa, Western Province",
+    "lat": 6.818341266652925,
+    "lng": 79.8944195842612,
+    "category": "container",
+    "image": "/uploads/1789455506296-7fd1e385.jpg",
+    "images": [
+      "/uploads/1789455506296-7fd1e385.jpg"
+    ],
+    "status": "Pending",
+    "risk": "High",
+    "riskScore": 90,
+    "priority": "Immediate Inspection",
+    "predictions": [
+      {
+        "class": "Vase",
+        "confidence": 0.96,
+        "bbox": {
+          "x_min": 100.42,
+          "y_min": 345.08,
+          "x_max": 218.53,
+          "y_max": 617.67
+        }
+      },
+      {
+        "class": "Vase",
+        "confidence": 0.91,
+        "bbox": {
+          "x_min": 262.08,
+          "y_min": 192.38,
+          "x_max": 309.92,
+          "y_max": 303.69
+        }
+      },
+      {
+        "class": "Bottle",
+        "confidence": 0.87,
+        "bbox": {
+          "x_min": 223.48,
+          "y_min": 302.86,
+          "x_max": 270.76,
+          "y_max": 346.74
+        }
+      },
+      {
+        "class": "Bottle",
+        "confidence": 0.72,
+        "bbox": {
+          "x_min": 241.23,
+          "y_min": 212.9,
+          "x_max": 265.55,
+          "y_max": 293.77
+        }
+      }
+    ],
+    "phi": "—",
+    "phiId": null,
+    "date": "2026-09-15",
+    "updated": "2026-09-15T06:58:53.674Z",
+    "comments": [],
+    "history": [
+      {
+        "status": "Pending",
+        "date": "2026-09-15T06:58:53.674Z",
+        "comments": "Report submitted & queued for PHI review"
+      }
+    ]
+  },
+  {
+    "id": "DG-1052",
+    "citizenId": "U-7445b258",
+    "citizenName": "Citizen Demo",
+    "description": "AI Detected Tire, Tire with 95.2% confidence.",
+    "location": "Moratuwa, Western Province",
+    "address": "Moratuwa, Western Province",
+    "lat": 6.818559731545065,
+    "lng": 79.89440209763949,
+    "category": "container",
+    "image": "/uploads/1789457557443-cd6e236c.jpg",
+    "images": [
+      "/uploads/1789457557443-cd6e236c.jpg"
+    ],
+    "status": "Pending",
+    "risk": "High",
+    "riskScore": 90,
+    "priority": "Immediate Inspection",
+    "predictions": [
+      {
+        "class": "Tire",
+        "confidence": 0.95,
+        "bbox": {
+          "x_min": 55,
+          "y_min": 16.88,
+          "x_max": 177.09,
+          "y_max": 246.4
+        }
+      },
+      {
+        "class": "Tire",
+        "confidence": 0.92,
+        "bbox": {
+          "x_min": 174.4,
+          "y_min": 133.36,
+          "x_max": 372.73,
+          "y_max": 219.59
+        }
+      }
+    ],
+    "phi": "—",
+    "phiId": null,
+    "date": "2026-09-15",
+    "updated": "2026-09-15T07:32:45.130Z",
+    "comments": [],
+    "history": [
+      {
+        "status": "Pending",
+        "date": "2026-09-15T07:32:45.130Z",
+        "comments": "Report submitted & queued for PHI review"
+      }
+    ]
+  },
+  {
+    "id": "DG-1053",
+    "citizenId": "U-7445b258",
+    "citizenName": "Citizen Demo",
+    "description": "Testing MongoDB Atlas direct persistence",
+    "location": "Moratuwa, Western Province",
+    "address": "Moratuwa, Western Province",
+    "lat": null,
+    "lng": null,
+    "category": "container",
+    "image": "🪣",
+    "images": [],
+    "status": "Pending",
+    "risk": "High",
+    "riskScore": 89,
+    "priority": "Immediate Inspection",
+    "predictions": [
+      {
+        "class": "Tire",
+        "confidence": 0.95
+      }
+    ],
+    "phi": "—",
+    "phiId": null,
+    "date": "2026-09-15",
+    "updated": "2026-09-15T10:35:57.992Z",
+    "comments": [],
+    "history": [
+      {
+        "status": "Pending",
+        "date": "2026-09-15T10:35:57.992Z",
+        "comments": "Report submitted & queued for PHI review"
+      }
+    ]
   }
 ]

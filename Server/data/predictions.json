@@ -1078,5 +1078,271 @@
     ],
     "createdAt": "2026-09-14T10:42:39.252Z",
     "feedback": null
+  },
+  {
+    "id": "PRED-58081036",
+    "reportId": null,
+    "image": "/uploads/1789404007746-3f2a2018.jpg",
+    "label": "No Breeding Site Indicators",
+    "risk": "Medium",
+    "riskScore": 69,
+    "priority": "Moderate",
+    "confidence": 90.9,
+    "riskAssessment": {
+      "riskScore": 69,
+      "riskLevel": "Medium",
+      "priority": "Moderate",
+      "recommendedAction": "Scheduled inspection within 48-72 hours",
+      "breakdown": {
+        "ai": {
+          "weight": "40%",
+          "score": 55,
+          "weightedContribution": 22,
+          "detectedCount": 2
+        },
+        "weather": {
+          "weight": "20%",
+          "score": 95,
+          "weightedContribution": 19,
+          "details": {
+            "source": "Regional Climatological Model (Fallback)",
+            "temperature": 29.5,
+            "humidity": 80,
+            "rainfallMm": 14,
+            "condition": "Rain",
+            "weatherScore": 95
+          }
+        },
+        "history": {
+          "weight": "25%",
+          "score": 75,
+          "weightedContribution": 18.8,
+          "details": {
+            "matchedDistrict": "Colombo (Default)",
+            "historyScore": 75,
+            "historicalCasesWeeklyAvg": 80,
+            "zone": "High Risk"
+          }
+        },
+        "density": {
+          "weight": "15%",
+          "score": 60,
+          "weightedContribution": 9,
+          "details": {
+            "nearbyReportsCount": 3,
+            "radiusKm": 3,
+            "densityScore": 60
+          }
+        }
+      }
+    },
+    "detectedObjects": [
+      {
+        "label": "Coconut-Exocarp",
+        "conf": 91,
+        "bbox": {
+          "x_min": 107.48,
+          "y_min": 211.03,
+          "x_max": 310.79,
+          "y_max": 365.99
+        }
+      },
+      {
+        "label": "Coconut-Exocarp",
+        "conf": 27,
+        "bbox": {
+          "x_min": 0.08,
+          "y_min": 500.98,
+          "x_max": 8.44,
+          "y_max": 546.3
+        }
+      }
+    ],
+    "createdAt": "2026-09-14T16:40:08.837Z",
+    "feedback": null
+  },
+  {
+    "id": "PRED-fdeea8cd",
+    "reportId": null,
+    "image": "/uploads/1789455506296-7fd1e385.jpg",
+    "label": "Potential Breeding Site Detected",
+    "risk": "High",
+    "riskScore": 90,
+    "priority": "Immediate Inspection",
+    "confidence": 96.1,
+    "riskAssessment": {
+      "riskScore": 90,
+      "riskLevel": "High",
+      "priority": "Immediate Inspection",
+      "recommendedAction": "Immediate PHI field inspection & larvicide / source elimination required",
+      "breakdown": {
+        "ai": {
+          "weight": "40%",
+          "score": 100,
+          "weightedContribution": 40,
+          "detectedCount": 4
+        },
+        "weather": {
+          "weight": "20%",
+          "score": 95,
+          "weightedContribution": 19,
+          "details": {
+            "source": "Regional Climatological Model (Fallback)",
+            "temperature": 29.5,
+            "humidity": 80,
+            "rainfallMm": 14,
+            "condition": "Rain",
+            "weatherScore": 95
+          }
+        },
+        "history": {
+          "weight": "25%",
+          "score": 75,
+          "weightedContribution": 18.8,
+          "details": {
+            "matchedDistrict": "Colombo (Default)",
+            "historyScore": 75,
+            "historicalCasesWeeklyAvg": 80,
+            "zone": "High Risk"
+          }
+        },
+        "density": {
+          "weight": "15%",
+          "score": 80,
+          "weightedContribution": 12,
+          "details": {
+            "nearbyReportsCount": 4,
+            "radiusKm": 3,
+            "densityScore": 80
+          }
+        }
+      }
+    },
+    "detectedObjects": [
+      {
+        "label": "Vase",
+        "conf": 96,
+        "bbox": {
+          "x_min": 100.42,
+          "y_min": 345.08,
+          "x_max": 218.53,
+          "y_max": 617.67
+        }
+      },
+      {
+        "label": "Vase",
+        "conf": 91,
+        "bbox": {
+          "x_min": 262.08,
+          "y_min": 192.38,
+          "x_max": 309.92,
+          "y_max": 303.69
+        }
+      },
+      {
+        "label": "Bottle",
+        "conf": 87,
+        "bbox": {
+          "x_min": 223.48,
+          "y_min": 302.86,
+          "x_max": 270.76,
+          "y_max": 346.74
+        }
+      },
+      {
+        "label": "Bottle",
+        "conf": 72,
+        "bbox": {
+          "x_min": 241.23,
+          "y_min": 212.9,
+          "x_max": 265.55,
+          "y_max": 293.77
+        }
+      }
+    ],
+    "createdAt": "2026-09-15T06:58:42.444Z",
+    "feedback": null
+  },
+  {
+    "id": "PRED-743fc2a4",
+    "reportId": null,
+    "image": "/uploads/1789457557443-cd6e236c.jpg",
+    "label": "Urgent Breeding Risk Detected",
+    "risk": "High",
+    "riskScore": 90,
+    "priority": "Immediate Inspection",
+    "confidence": 95.2,
+    "riskAssessment": {
+      "riskScore": 90,
+      "riskLevel": "High",
+      "priority": "Immediate Inspection",
+      "recommendedAction": "Immediate PHI field inspection & larvicide / source elimination required",
+      "breakdown": {
+        "ai": {
+          "weight": "40%",
+          "score": 100,
+          "weightedContribution": 40,
+          "detectedCount": 2
+        },
+        "weather": {
+          "weight": "20%",
+          "score": 95,
+          "weightedContribution": 19,
+          "details": {
+            "source": "Regional Climatological Model (Fallback)",
+            "temperature": 29.5,
+            "humidity": 80,
+            "rainfallMm": 14,
+            "condition": "Rain",
+            "weatherScore": 95
+          }
+        },
+        "history": {
+          "weight": "25%",
+          "score": 75,
+          "weightedContribution": 18.8,
+          "details": {
+            "matchedDistrict": "Colombo (Default)",
+            "historyScore": 75,
+            "historicalCasesWeeklyAvg": 80,
+            "zone": "High Risk"
+          }
+        },
+        "density": {
+          "weight": "15%",
+          "score": 80,
+          "weightedContribution": 12,
+          "details": {
+            "nearbyReportsCount": 5,
+            "radiusKm": 3,
+            "densityScore": 80
+          }
+        }
+      }
+    },
+    "detectedObjects": [
+      {
+        "label": "Tire",
+        "conf": 95,
+        "bbox": {
+          "x_min": 55,
+          "y_min": 16.88,
+          "x_max": 177.09,
+          "y_max": 246.4
+        }
+      },
+      {
+        "label": "Tire",
+        "conf": 92,
+        "bbox": {
+          "x_min": 174.4,
+          "y_min": 133.36,
+          "x_max": 372.73,
+          "y_max": 219.59
+        }
+      }
+    ],
+    "createdAt": "2026-09-15T07:32:37.924Z",
+    "feedback": null
   }
 ]

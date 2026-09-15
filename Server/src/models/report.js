@@ -122,6 +122,27 @@ const reportSchema = new mongoose.Schema(
       index: true,
     },
 
+    riskScore: {
+      type: Number,
+      default: 50,
+      index: true,
+    },
+
+    priority: {
+      type: String,
+      default: "Moderate",
+    },
+
+    category: {
+      type: String,
+      default: "container",
+    },
+
+    predictions: {
+      type: [mongoose.Schema.Types.Mixed],
+      default: [],
+    },
+
     phi: {
       type: String,
       default: "—",
