@@ -258,7 +258,7 @@ export default function TrackComplaint() {
           />
         ) : (
           <>
-            <Table columns={columns} data={rows} className="font-sans" />
+            <Table columns={columns} rows={rows} className="font-sans" />
             <div className="border-t border-border p-3 flex justify-between items-center bg-muted/10 font-mono text-xs text-muted-foreground">
               <span>SHOWING {rows.length} OF {filtered.length} RECORDS</span>
               {pageCount > 1 && (

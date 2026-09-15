@@ -4,8 +4,9 @@ import { cn } from "../../utils/helpers";
  * Column-driven table.
  * `columns: [{ key, header, render?, className?, headerClassName? }]`
  */
-export default function Table({ columns, rows, rowKey = "id", empty, className }) {
-  if (!rows?.length && empty) return empty;
+export default function Table({ columns = [], rows, data, rowKey = "id", empty, className }) {
+  const items = rows ?? data ?? [];
+  if (!items?.length && empty) return empty;
 
   return (
     <div className="overflow-x-auto">
@@ -26,9 +27,9 @@ export default function Table({ columns, rows, rowKey = "id", empty, className }
           </tr>
         </thead>
         <tbody>
-          {rows.map((row) => (
+          {items.map((row, index) => (
             <tr
-              key={row[rowKey]}
+              key={row[rowKey] ? `${row[rowKey]}-${index}` : index}
               className="border-b border-border last:border-b-0 hover:bg-muted/40"
             >
               {columns.map((column) => (
