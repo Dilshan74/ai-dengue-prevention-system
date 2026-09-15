@@ -262,7 +262,7 @@ export default function TrackComplaint() {
             <div className="border-t border-border p-3 flex justify-between items-center bg-muted/10 font-mono text-xs text-muted-foreground">
               <span>SHOWING {rows.length} OF {filtered.length} RECORDS</span>
               {pageCount > 1 && (
-                <Pagination page={currentPage} totalPages={pageCount} onChange={setPage} />
+                <Pagination page={currentPage} totalPages={pageCount} onChange={setPage} showRange={false} />
               )}
             </div>
           </>
