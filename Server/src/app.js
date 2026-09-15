@@ -28,8 +28,16 @@ if (env.nodeEnv !== "test") app.use(morgan("dev"));
 // Serve uploaded images (report photos, inspection photos, AI predict input)
 app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
 
+import mongoose from "mongoose";
+
 app.get("/", (req, res) => res.json({ message: "Welcome to DengueGuard AI API" }));
-app.get("/api/health", (req, res) => res.json({ status: "ok", time: new Date().toISOString() }));
+app.get("/api/health", (req, res) => res.json({ 
+  status: "ok", 
+  database: mongoose.connection.readyState === 1 ? "MongoDB Connected" : "Local Storage (MongoDB Disconnected)",
+  dbHost: mongoose.connection.host || null,
+  dbName: mongoose.connection.name || null,
+  time: new Date().toISOString() 
+}));
 
 app.use("/api/auth", authRoutes);
 app.use("/api/citizen", citizenRoutes);
