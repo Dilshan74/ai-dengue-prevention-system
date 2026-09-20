@@ -12,4 +12,5 @@ export const env = {
     .map((s) => s.trim()),
   seedPassword: process.env.SEED_PASSWORD || "demo1234",
   mongoUri: process.env.MONGO_URI || "mongodb://localhost:27017/dengueguard",
+  aiServiceUrl: process.env.AI_SERVICE_URL || "http://127.0.0.1:5001",
 };

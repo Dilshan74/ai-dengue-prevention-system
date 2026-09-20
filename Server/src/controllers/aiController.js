@@ -1,12 +1,42 @@
+import axios from "axios";
+import { env } from "../config/env.js";
 import { predictionsStore, reportsStore } from "../data/stores.js";
 import { asyncHandler, nextId, ApiError } from "../utils/helpers.js";
 import { classifyImage } from "../utils/aiSimulator.js";
 import { uploadUrl } from "../middleware/upload.js";
 
+async function getAiPrediction(file) {
+  try {
+    // Form data with the file path for instant zero-copy inference
+    const params = new URLSearchParams();
+    params.append("image_path", file.path);
+
+    const response = await axios.post(`${env.aiServiceUrl}/predict`, params, {
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      timeout: 10000,
+    });
+
+    if (response.data) {
+      return {
+        ...response.data,
+        source: "best.pt (FastAPI)",
+      };
+    }
+  } catch (error) {
+    console.warn(`[AI Controller] AI service at ${env.aiServiceUrl} unavailable (${error.message}). Using fallback simulator.`);
+  }
+
+  // Graceful fallback to simulator if Python service is offline
+  return {
+    ...classifyImage(),
+    source: "simulator",
+  };
+}
+
 export const predict = asyncHandler(async (req, res) => {
   if (!req.file) throw new ApiError(400, "An image is required");
 
-  const result = classifyImage();
+  const result = await getAiPrediction(req.file);
   const prediction = {
     id: nextId("PRED"),
     reportId: req.body.reportId || null,
