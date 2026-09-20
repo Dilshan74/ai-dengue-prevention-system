@@ -15,12 +15,15 @@ export const adminService = {
     request({ url: "/admin/phis", method: "post", data: payload }),
   assignArea: (phiId, areaId) =>
     request({ url: `/admin/phis/${phiId}/area`, method: "put", data: { areaId } }),
+
+  // ---- Areas ----
   areas: () => request({ url: "/admin/areas" }),
   createArea: (payload) =>
     request({ url: "/admin/areas", method: "post", data: payload }),
   updateArea: (id, payload) =>
     request({ url: `/admin/areas/${id}`, method: "put", data: payload }),
   deleteArea: (id) => request({ url: `/admin/areas/${id}`, method: "delete" }),
+
   // ---- Complaint / Report management ----
   complaints: (params) => request({ url: "/admin/reports", params }),
   complaint: (id) => request({ url: `/admin/reports/${id}` }),
@@ -40,6 +43,11 @@ export const adminService = {
   settings: () => request({ url: "/admin/settings" }),
   updateSettings: (payload) =>
     request({ url: "/admin/settings", method: "put", data: payload }),
+    
+  // ---- Notifications ----
+  notifications: () => request({ url: "/admin/notifications" }),
+  markNotificationRead: (id) => request({ url: `/admin/notifications/${id}/read`, method: "patch" }),
+  deleteNotification: (id) => request({ url: `/admin/notifications/${id}`, method: "delete" }),
 };
 
 export default adminService;

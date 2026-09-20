@@ -15,14 +15,6 @@ import DengueHotspotMap from "../../../components/maps/DengueHotspotMap";
 import adminService from "../../../services/adminService";
 import { cn } from "../../../utils/helpers";
 
-const MAP_FILTERS = [
-  { label: "All", value: {} },
-  { label: "High Risk", value: { risk: "High" } },
-  { label: "Pending", value: { status: "Pending" } },
-  { label: "Resolved", value: { status: "Resolved" } },
-  { label: "Under Review", value: { status: "Under Review" } },
-];
-
 const SYSTEM_HEALTH = [
   ["API Status", "Operational", "text-green-700"],
   ["AI Model", "Online", "text-green-700"],
@@ -34,7 +26,7 @@ export default function Dashboard() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activity, setActivity] = useState([]);
-  const [activeFilter, setActiveFilter] = useState(0);
+  const [highRiskCount, setHighRiskCount] = useState(0);
 
   useEffect(() => {
     adminService
@@ -47,16 +39,19 @@ export default function Dashboard() {
       .finally(() => setLoading(false));
   }, []);
 
+  const handleRiskDataLoaded = (data) => {
+    // Count districts that are CRITICAL or HIGH risk
+    const highRisk = data.filter(d => d.riskLevel === 'CRITICAL' || d.riskLevel === 'HIGH').length;
+    setHighRiskCount(highRisk);
+  };
+
   const s = stats ?? {
     totalUsers: 0,
     totalPhis: 0,
     totalReports: 0,
-    highRiskReports: 0,
     resolvedReports: 0,
     pendingReports: 0,
   };
-
-  const mapFilter = useMemo(() => MAP_FILTERS[activeFilter].value, [activeFilter]);
 
   return (
     <>
@@ -83,7 +78,7 @@ export default function Dashboard() {
         />
         <StatCard
           label="High Risk Areas"
-          value={loading ? "—" : s.highRiskReports}
+          value={loading ? "—" : highRiskCount}
           icon={AlertTriangle}
           tint="destructive"
         />
@@ -103,30 +98,11 @@ export default function Dashboard() {
 
       {/* Dengue Monitoring Map */}
       <Card
-        title="Dengue Monitoring Map"
-        description="All reported dengue locations across Sri Lanka."
+        title="Dengue Risk Hotspots"
+        description="Predicted dengue risk levels based on NDCU data."
         className="mt-6"
-        action={
-          <div className="flex flex-wrap gap-1.5">
-            {MAP_FILTERS.map((f, i) => (
-              <button
-                key={f.label}
-                type="button"
-                onClick={() => setActiveFilter(i)}
-                className={cn(
-                  "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
-                  i === activeFilter
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground",
-                )}
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
-        }
       >
-        <DengueHotspotMap filter={mapFilter} />
+        <DengueHotspotMap onDataLoaded={handleRiskDataLoaded} />
       </Card>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">

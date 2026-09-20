@@ -17,6 +17,7 @@ import Card from "../../../components/common/Card";
 import { PREVENTION_TIPS, WEATHER } from "../../../utils/constants";
 import citizenService from "../../../services/citizenService";
 import useAuth from "../../../hooks/useAuth";
+import mapService from "../../../services/mapService";
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -42,26 +43,80 @@ export default function Dashboard() {
   useEffect(() => {
     citizenService
       .dashboard()
-      .then((data) => {
+      .then(async (data) => {
         if (data?.stats) setStats(data.stats);
         if (data?.areaRisk) setAreaRisk(data.areaRisk);
         
-        // Fetch live weather data based on the area matched by the backend
-        const resolvedCity = data?.areaRisk?.locationName || user?.area || "Colombo";
-        const coords = CITY_COORDINATES[resolvedCity] || CITY_COORDINATES.Colombo;
-        
-        fetch(`https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lng}&current=temperature_2m,relative_humidity_2m,precipitation`)
-          .then(res => res.json())
-          .then(weatherData => {
-            if (weatherData && weatherData.current) {
-              setWeather({
-                temp: Math.round(weatherData.current.temperature_2m),
-                humidity: Math.round(weatherData.current.relative_humidity_2m),
-                rain: Math.round(weatherData.current.precipitation),
+        let finalLat = null;
+        let finalLng = null;
+        let finalLocationName = null;
+
+        try {
+          // Attempt geolocation first
+          const position = await mapService.currentPosition();
+          finalLat = position.lat;
+          finalLng = position.lng;
+          
+          // Reverse geocode to get city name for display
+          try {
+             const geoRes = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${position.lat}&longitude=${position.lng}&localityLanguage=en`);
+             const geoData = await geoRes.json();
+             finalLocationName = geoData.city || geoData.locality || "Current Location";
+          } catch(e) {
+             finalLocationName = "Current Location";
+          }
+          
+          // Update areaRisk to show current location name if geolocated
+          if (data?.areaRisk) {
+              setAreaRisk({
+                  ...data.areaRisk,
+                  locationName: finalLocationName
               });
-            }
-          })
-          .catch(err => console.error("Failed to fetch weather", err));
+          } else {
+             setAreaRisk({
+                 locationName: finalLocationName,
+                 riskLevel: 'UNKNOWN',
+                 riskScore: 0
+             });
+          }
+
+        } catch(e) {
+          // Fallback to registered area coordinates if geolocation fails or is denied
+          const resolvedCity = data?.areaRisk?.locationName || user?.area || "Colombo";
+          const coords = CITY_COORDINATES[resolvedCity] || CITY_COORDINATES.Colombo;
+          finalLat = coords.lat;
+          finalLng = coords.lng;
+          
+          if (data?.areaRisk) {
+              setAreaRisk({
+                  ...data.areaRisk,
+                  locationName: resolvedCity
+              });
+          } else {
+              setAreaRisk({
+                  locationName: resolvedCity,
+                  riskLevel: 'UNKNOWN',
+                  riskScore: 0
+              });
+          }
+        }
+
+        // Fetch live weather data based on the coordinates
+        if (finalLat !== null && finalLng !== null) {
+            fetch(`https://api.open-meteo.com/v1/forecast?latitude=${finalLat}&longitude=${finalLng}&current=temperature_2m,relative_humidity_2m,precipitation`)
+              .then(res => res.json())
+              .then(weatherData => {
+                if (weatherData && weatherData.current) {
+                  setWeather({
+                    temp: Math.round(weatherData.current.temperature_2m),
+                    humidity: Math.round(weatherData.current.relative_humidity_2m),
+                    rain: Math.round(weatherData.current.precipitation),
+                  });
+                }
+              })
+              .catch(err => console.error("Failed to fetch weather", err));
+        }
+
       })
       .catch(() => {}) // silently fail — user still sees zeros
       .finally(() => setLoading(false));

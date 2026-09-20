@@ -1,8 +1,9 @@
 import Report from "../models/report.js";
 import User from "../models/user.js";
 import DengueRisk from "../models/dengueRisk.js";
-import { asyncHandler, nextReportId, paginate, ApiError } from "../utils/helpers.js";
+import { asyncHandler, nextReportId, nextId, paginate, ApiError } from "../utils/helpers.js";
 import { uploadUrl } from "../middleware/upload.js";
+import Notification from "../models/notification.js";
 
 export const dashboard = asyncHandler(async (req, res) => {
   const myReports = await Report.find({ citizenId: req.user.id }).lean();
@@ -108,6 +109,15 @@ export const createComplaint = asyncHandler(async (req, res) => {
     updated: new Date(),
     comments: [],
     history: [{ status: "Pending", date: new Date(), comments: "Report submitted" }],
+  });
+
+  await Notification.create({
+    id: nextId("N"),
+    userId: null,
+    role: "admin",
+    type: "warning",
+    title: "New Complaint Submitted",
+    body: `A new complaint (${report.id}) has been reported at ${location}.`,
   });
 
   res.status(201).json(report.toObject());

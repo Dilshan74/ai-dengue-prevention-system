@@ -1,25 +1,39 @@
-import { useMemo, useState } from "react";
-import { Plus, Power, Trash2, Users as UsersIcon } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Trash2, Users as UsersIcon } from "lucide-react";
 import { toast } from "sonner";
 import Badge from "../../../components/common/Badge";
 import Button from "../../../components/common/Button";
 import EmptyState from "../../../components/common/EmptyState";
-import Modal from "../../../components/common/Modal";
 import PageHeader from "../../../components/common/PageHeader";
 import Pagination from "../../../components/common/Pagination";
 import SearchBar from "../../../components/common/SearchBar";
 import Table from "../../../components/common/Table";
-import { FormField, Input, Select } from "../../../components/common/Field";
-import { USERS } from "../../../utils/constants";
 import { matchesQuery, paginate, totalPages } from "../../../utils/helpers";
+import adminService from "../../../services/adminService";
 
 const PER_PAGE = 5;
 
 export default function ManageUsers() {
-  const [users, setUsers] = useState(USERS);
+  const [users, setUsers] = useState([]);
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
-  const [addOpen, setAddOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      const data = await adminService.users();
+      setUsers(data?.data || (Array.isArray(data) ? data : []));
+    } catch (err) {
+      toast.error("Failed to load users");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filtered = useMemo(
     () => users.filter((user) => matchesQuery(user, query, ["id", "name", "email", "area"])),
@@ -30,18 +44,14 @@ export default function ManageUsers() {
   const currentPage = Math.min(page, pageCount);
   const rows = paginate(filtered, currentPage, PER_PAGE);
 
-  const toggleStatus = (id) =>
-    setUsers((current) =>
-      current.map((user) =>
-        user.id === id
-          ? { ...user, status: user.status === "Active" ? "Inactive" : "Active" }
-          : user,
-      ),
-    );
-
-  const removeUser = (id) => {
-    setUsers((current) => current.filter((user) => user.id !== id));
-    toast.success(`${id} removed`);
+  const removeUser = async (id) => {
+    try {
+      await adminService.deleteUser(id);
+      setUsers((current) => current.filter((user) => user.id !== id));
+      toast.success(`${id} removed successfully`);
+    } catch (err) {
+      toast.error(`Failed to remove ${id}`);
+    }
   };
 
   const columns = [
@@ -49,7 +59,7 @@ export default function ManageUsers() {
     { key: "name", header: "Name", className: "font-semibold" },
     { key: "email", header: "Email", className: "whitespace-nowrap text-muted-foreground" },
     { key: "role", header: "Role" },
-    { key: "area", header: "Area" },
+    { key: "area", header: "Area", render: (row) => row.area || "-" },
     {
       key: "status",
       header: "Status",
@@ -65,21 +75,13 @@ export default function ManageUsers() {
         </Badge>
       ),
     },
-    { key: "joined", header: "Joined", className: "whitespace-nowrap text-muted-foreground" },
+    { key: "joined", header: "Joined", className: "whitespace-nowrap text-muted-foreground", render: (row) => row.joined || "-" },
     {
       key: "actions",
       header: "Actions",
       headerClassName: "text-right",
       render: (row) => (
         <div className="flex justify-end gap-1">
-          <Button
-            size="sm"
-            variant="ghost"
-            aria-label={`Toggle status for ${row.name}`}
-            onClick={() => toggleStatus(row.id)}
-          >
-            <Power className="h-3.5 w-3.5" />
-          </Button>
           <Button
             size="sm"
             variant="ghost"
@@ -98,12 +100,7 @@ export default function ManageUsers() {
     <>
       <PageHeader
         title="Manage Users"
-        description={`${users.length} users`}
-        action={
-          <Button onClick={() => setAddOpen(true)}>
-            <Plus className="h-4 w-4" /> Add User
-          </Button>
-        }
+        description={loading ? "Loading users..." : `${users.length} users`}
       />
       <div className="soft-shadow rounded-2xl border border-border bg-card">
         <div className="border-b border-border p-4">
@@ -134,40 +131,6 @@ export default function ManageUsers() {
           />
         )}
       </div>
-
-      <Modal
-        open={addOpen}
-        onClose={() => setAddOpen(false)}
-        title="Add user"
-        description="Invite a citizen or staff member to the platform."
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setAddOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={() => {
-                setAddOpen(false);
-                toast.success("Invitation sent");
-              }}
-            >
-              Send invite
-            </Button>
-          </>
-        }
-      >
-        <div className="space-y-4">
-          <FormField label="Full name" htmlFor="new-user-name">
-            <Input id="new-user-name" placeholder="Nimal Perera" />
-          </FormField>
-          <FormField label="Email" htmlFor="new-user-email">
-            <Input id="new-user-email" type="email" placeholder="you@example.com" />
-          </FormField>
-          <FormField label="Role" htmlFor="new-user-role">
-            <Select id="new-user-role" options={["Citizen", "PHI", "Admin"]} />
-          </FormField>
-        </div>
-      </Modal>
     </>
   );
 }

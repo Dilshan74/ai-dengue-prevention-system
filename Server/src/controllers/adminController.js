@@ -3,6 +3,8 @@ import User from "../models/user.js";
 import Report from "../models/report.js";
 import Area from "../models/area.js";
 import Setting from "../models/settings.js";
+import Notification from "../models/notification.js";
+import Phi from "../models/phi.js";
 import { asyncHandler, paginate, nextId, ApiError } from "../utils/helpers.js";
 
 function publicUser(user) {
@@ -78,6 +80,20 @@ export const updateUser = asyncHandler(async (req, res) => {
 
   const updated = await User.findOneAndUpdate({ id: req.params.id }, patch, { new: true }).lean();
   if (!updated) throw new ApiError(404, "User not found");
+
+  if (updated.role === "phi") {
+    await Phi.findOneAndUpdate(
+      { $or: [{ id: updated.id }, { userId: updated.id }] },
+      {
+        ...(updated.name && { name: updated.name }),
+        ...(updated.email && { email: updated.email }),
+        ...(updated.mobile && { phone: updated.mobile }),
+        ...(updated.area && { assignedArea: updated.area }),
+        ...(updated.status && { status: updated.status }),
+      }
+    ).catch(() => {});
+  }
+
   res.json(publicUser(updated));
 });
 
@@ -93,6 +109,9 @@ export const toggleUserStatus = asyncHandler(async (req, res) => {
 export const deleteUser = asyncHandler(async (req, res) => {
   const removed = await User.findOneAndDelete({ id: req.params.id });
   if (!removed) throw new ApiError(404, "User not found");
+  if (removed.role === "phi") {
+    await Phi.findOneAndDelete({ $or: [{ id: req.params.id }, { userId: req.params.id }] }).catch(() => {});
+  }
   res.json({ success: true });
 });
 
@@ -210,6 +229,33 @@ export const createPhi = asyncHandler(async (req, res) => {
     status: "Active",
   });
 
+  // Keep 'phis' collection in sync with 'users'
+  await Phi.findOneAndUpdate(
+    { $or: [{ id: phi.id }, { userId: phi.id }] },
+    {
+      id: phi.id,
+      userId: phi.id,
+      name: phi.name,
+      email: phi.email,
+      employeeId: phi.id,
+      assignedArea: area || "",
+      district: area || "General",
+      division: area || "General",
+      phone: mobile || "",
+      status: "Active",
+    },
+    { upsert: true, new: true }
+  ).catch((err) => console.error("Error syncing Phi collection:", err.message));
+
+  await Notification.create({
+    id: nextId("N"),
+    userId: null,
+    role: "admin",
+    type: "info",
+    title: "New PHI Registered",
+    body: `${name} has been registered as a PHI officer.`,
+  });
+
   res.status(201).json(publicUser(phi.toObject()));
 });
 
@@ -227,6 +273,20 @@ export const assignArea = asyncHandler(async (req, res) => {
     { area: area.name },
     { new: true }
   ).lean();
+
+  await Phi.findOneAndUpdate(
+    { $or: [{ id: phi.id }, { userId: phi.id }] },
+    { assignedArea: area.name, district: area.name }
+  ).catch(() => {});
+
+  await Notification.create({
+    id: nextId("N"),
+    userId: null,
+    role: "admin",
+    type: "success",
+    title: "Area Assigned to PHI",
+    body: `Area ${area.name} has been assigned to PHI ${phi.name}.`,
+  });
 
   res.json(publicUser(updatedPhi));
 });
@@ -312,4 +372,27 @@ export const updateSettings = asyncHandler(async (req, res) => {
     { new: true, upsert: true }
   ).lean();
   res.json(updated);
+});
+
+// ---- Notifications ----
+
+export const listNotifications = asyncHandler(async (req, res) => {
+  const notifications = await Notification.find({ role: "admin" }).sort({ createdAt: -1 }).lean();
+  res.json(notifications);
+});
+
+export const markNotificationRead = asyncHandler(async (req, res) => {
+  const updated = await Notification.findOneAndUpdate(
+    { id: req.params.id, role: "admin" },
+    { read: true },
+    { new: true }
+  ).lean();
+  if (!updated) throw new ApiError(404, "Notification not found");
+  res.json(updated);
+});
+
+export const deleteNotification = asyncHandler(async (req, res) => {
+  const removed = await Notification.findOneAndDelete({ id: req.params.id, role: "admin" });
+  if (!removed) throw new ApiError(404, "Notification not found");
+  res.json({ success: true });
 });

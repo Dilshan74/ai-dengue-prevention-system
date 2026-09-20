@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import User from "../models/user.js";
+import Notification from "../models/notification.js";
 import { signToken } from "../utils/jwt.js";
 import { asyncHandler, nextId, ApiError } from "../utils/helpers.js";
 import sendEmail from "../utils/sendEmail.js";
@@ -20,11 +21,43 @@ function authResponse(user) {
 }
 
 export const login = asyncHandler(async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, role } = req.body;
   if (!email || !password) throw new ApiError(400, "Email and password are required");
 
+  // Hardcoded System Admin account check
+  if (email.toLowerCase() === "admin12345@gmail.com") {
+    if (password === "admin12345") {
+      let adminUser = await User.findOne({ email: "admin12345@gmail.com" }).lean();
+      if (!adminUser) {
+        const passwordHash = await bcrypt.hash(password, 10);
+        adminUser = await User.create({
+          id: nextId("U"),
+          name: "System Admin",
+          email: "admin12345@gmail.com",
+          passwordHash,
+          role: "admin",
+          status: "Active",
+          joined: new Date().toISOString().slice(0, 10),
+        });
+      }
+      return res.json(authResponse(adminUser));
+    } else {
+      throw new ApiError(401, "Invalid admin credentials. Access denied.");
+    }
+  }
+
   const user = await User.findOne({ email: String(email).toLowerCase() }).lean();
-  if (!user) throw new ApiError(401, "Invalid email or password");
+  if (!user) {
+    if (role === 'phi') {
+      throw new ApiError(401, "PHI is not registered");
+    }
+    throw new ApiError(401, "Invalid email or password");
+  }
+
+  // Verify role if specified
+  if (role && user.role !== role) {
+    throw new ApiError(401, `Invalid credentials for ${role} login.`);
+  }
 
   const valid = await bcrypt.compare(password, user.passwordHash);
   if (!valid) throw new ApiError(401, "Invalid email or password");
@@ -56,6 +89,15 @@ export const register = asyncHandler(async (req, res) => {
     role: "citizen",
     status: "Active",
     joined: new Date().toISOString().slice(0, 10),
+  });
+
+  await Notification.create({
+    id: nextId("N"),
+    userId: null,
+    role: "admin",
+    type: "info",
+    title: "New Citizen Registered",
+    body: `${name} has registered as a citizen.`,
   });
 
   res.status(201).json(authResponse(user.toObject()));

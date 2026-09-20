@@ -42,7 +42,7 @@ export default function Login() {
 
     try {
       setLoading(true);
-      const data = await authService.login({ email: values.email, password: values.password });
+      const data = await authService.login({ email: values.email, password: values.password, role });
       // data = { token, id, email, name, role }
       login({ email: data.email, name: data.name, role: data.role ?? role, token: data.token });
       toast.success(`Welcome back, ${data.name}!`);
@@ -126,12 +126,14 @@ export default function Login() {
         </Button>
       </form>
 
-      <p className="mt-8 text-center text-sm text-muted-foreground">
-        Don&apos;t have an account?{" "}
-        <Link to="/register" className="font-semibold text-primary hover:text-primary/80 transition-colors">
-          Create an account
-        </Link>
-      </p>
+      {role === ROLES.CITIZEN && (
+        <p className="mt-8 text-center text-sm text-muted-foreground">
+          Don&apos;t have an account?{" "}
+          <Link to="/register" className="font-semibold text-primary hover:text-primary/80 transition-colors">
+            Create an account
+          </Link>
+        </p>
+      )}
     </div>
   );
 }

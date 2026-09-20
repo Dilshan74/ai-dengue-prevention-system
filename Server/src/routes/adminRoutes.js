@@ -33,5 +33,10 @@ router.get("/statistics", adminController.statistics);
 router.get("/settings", adminController.getSettings);
 router.put("/settings", adminController.updateSettings);
 
+// ---- Notifications ----
+router.get("/notifications", adminController.listNotifications);
+router.patch("/notifications/:id/read", adminController.markNotificationRead);
+router.delete("/notifications/:id", adminController.deleteNotification);
+
 export default router;
 

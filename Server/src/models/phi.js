@@ -75,11 +75,25 @@ const phiSchema = new mongoose.Schema(
       index: true,
     },
 
+    name: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    email: {
+      type: String,
+      default: "",
+      lowercase: true,
+      trim: true,
+    },
+
     // Professional details
     employeeId: {
       type: String,
-      required: true,
-      unique: true,
+      default: function () {
+        return this.id || this.userId || "";
+      },
       trim: true,
       index: true,
     },
@@ -98,21 +112,21 @@ const phiSchema = new mongoose.Schema(
     // Location details
     district: {
       type: String,
-      required: true,
+      default: "General",
       trim: true,
       index: true,
     },
 
     division: {
       type: String,
-      required: true,
+      default: "General",
       trim: true,
       index: true,
     },
 
     assignedArea: {
       type: String,
-      required: true,
+      default: "",
       trim: true,
       index: true,
     },
