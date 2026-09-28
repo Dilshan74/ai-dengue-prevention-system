@@ -49,13 +49,13 @@ const VERIFIED_LOCATIONS = [
 export default function UploadImage() {
   const navigate = useNavigate();
   const [file, setFile] = useState(null);
-  const [locationText, setLocationText] = useState("Nugegoda, Ward 12 (Colombo)");
+  const [locationText, setLocationText] = useState("");
   const [category, setCategory] = useState("container");
   const [description, setDescription] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   // Geolocation coordinates
-  const [coords, setCoords] = useState({ lat: 6.8712, lon: 79.8890, gpsActive: false, isLocating: false });
+  const [coords, setCoords] = useState({ lat: null, lon: null, gpsActive: false, isLocating: false });
   const [showMap, setShowMap] = useState(false);
   const [gpsBlocked, setGpsBlocked] = useState(false);
 
@@ -65,7 +65,7 @@ export default function UploadImage() {
   const [ndcuCases, setNdcuCases] = useState(980);
   const [reportDensity, setReportDensity] = useState(8);
 
-  const activeLocation = locationText.trim() || `${coords.lat}, ${coords.lon}`;
+  const activeLocation = locationText.trim() || (coords.gpsActive && coords.lat != null ? `${coords.lat}° N, ${coords.lon}° E` : "");
 
   const findClosestDistrict = (lat, lon) => {
     let closest = VERIFIED_LOCATIONS[0];
@@ -170,6 +170,11 @@ export default function UploadImage() {
       return;
     }
 
+    if (!activeLocation) {
+      toast.error("Please click 'Detect My GPS' or type your area / district");
+      return;
+    }
+
     try {
       setIsAnalyzing(true);
       toast.info("Analyzing with YOLOv8 Vision & Random Forest ML...");
@@ -178,8 +183,8 @@ export default function UploadImage() {
         location: activeLocation,
         category,
         description,
-        latitude: coords.lat,
-        longitude: coords.lon,
+        latitude: coords.lat != null ? coords.lat : 6.9271,
+        longitude: coords.lon != null ? coords.lon : 79.8612,
       };
 
       // Only attach manual overrides if the user explicitly enabled simulation mode
@@ -256,9 +261,9 @@ export default function UploadImage() {
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="areaLocation" className="text-sm font-medium text-foreground">
-                    Select Area / District
+                    Area / District
                   </Label>
-                  <span className="text-[11px] text-muted-foreground">Type or auto-detect via GPS</span>
+                  <span className="text-[11px] text-muted-foreground">Click Detect My GPS or type</span>
                 </div>
                 <div className="flex gap-2">
                   <div className="relative flex-1">
@@ -268,7 +273,7 @@ export default function UploadImage() {
                       type="text"
                       value={locationText}
                       onChange={(e) => setLocationText(e.target.value)}
-                      placeholder="e.g. Nugegoda, Ward 12 (Colombo) or click Detect My GPS"
+                      placeholder="Click 'Detect My GPS' or type area / district..."
                       className="h-10 w-full rounded-xl border border-input bg-card pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary shadow-xs"
                     />
                   </div>
@@ -294,19 +299,25 @@ export default function UploadImage() {
               {/* Verified GPS Status & Map Toggle */}
               <div className="rounded-xl border border-dashed border-border bg-muted/30 p-2.5 text-xs text-muted-foreground flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
-                  <span className="font-mono text-foreground font-medium">
-                    📍 {coords.lat}° N, {coords.lon}° E
+                  <span className="font-mono text-foreground font-medium text-xs">
+                    {coords.gpsActive && coords.lat != null ? (
+                      `📍 ${coords.lat}° N, ${coords.lon}° E`
+                    ) : (
+                      <span className="text-muted-foreground font-normal">
+                        📍 GPS: Not detected yet
+                      </span>
+                    )}
                   </span>
                   {coords.gpsActive && (
                     <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600">
-                      <CheckCircle2 className="h-3 w-3" /> Live GPS
+                      <CheckCircle2 className="h-3 w-3" /> Live GPS Locked
                     </span>
                   )}
                 </div>
                 <button
                   type="button"
                   onClick={() => setShowMap(!showMap)}
-                  className="inline-flex items-center gap-1 text-primary hover:underline font-medium"
+                  className="inline-flex items-center gap-1 text-primary hover:underline font-medium cursor-pointer"
                 >
                   <MapIcon className="h-3.5 w-3.5" />
                   {showMap ? "Hide Map" : "Pin on Map"}
@@ -320,7 +331,7 @@ export default function UploadImage() {
                     <span>Click or tap anywhere on the map to pin the exact hazard location:</span>
                   </div>
                   <LocationPicker
-                    value={{ lat: coords.lat, lng: coords.lon }}
+                    value={coords.lat != null && coords.lon != null ? { lat: coords.lat, lng: coords.lon } : null}
                     onChange={handleMapPin}
                   />
                 </div>
