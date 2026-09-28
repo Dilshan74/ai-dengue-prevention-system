@@ -17,7 +17,7 @@ import {
 import { toast } from "sonner";
 import Button from "../../../components/common/Button";
 import PageHeader from "../../../components/common/PageHeader";
-import { FormField, Input, Select, Textarea } from "../../../components/common/Field";
+import { FormField, Input, Label, Select, Textarea } from "../../../components/common/Field";
 import ImageUploader from "../../../components/ai/ImageUploader";
 import LocationPicker from "../../../components/maps/LocationPicker";
 import { aiService } from "../../../services/aiService";
@@ -49,8 +49,7 @@ const VERIFIED_LOCATIONS = [
 export default function UploadImage() {
   const navigate = useNavigate();
   const [file, setFile] = useState(null);
-  const [selectedPreset, setSelectedPreset] = useState("Nugegoda, Ward 12 (Colombo)");
-  const [customLocationText, setCustomLocationText] = useState("");
+  const [locationText, setLocationText] = useState("Nugegoda, Ward 12 (Colombo)");
   const [category, setCategory] = useState("container");
   const [description, setDescription] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -66,7 +65,21 @@ export default function UploadImage() {
   const [ndcuCases, setNdcuCases] = useState(980);
   const [reportDensity, setReportDensity] = useState(8);
 
-  const activeLocation = selectedPreset === "custom" ? (customLocationText || "Custom Location") : selectedPreset;
+  const activeLocation = locationText.trim() || `${coords.lat}, ${coords.lon}`;
+
+  const findClosestDistrict = (lat, lon) => {
+    let closest = VERIFIED_LOCATIONS[0];
+    let minDiff = Infinity;
+    for (const loc of VERIFIED_LOCATIONS) {
+      if (loc.value === "custom") continue;
+      const diff = Math.hypot(loc.lat - lat, loc.lon - lon);
+      if (diff < minDiff) {
+        minDiff = diff;
+        closest = loc;
+      }
+    }
+    return closest;
+  };
 
   // Reverse geocoding helper (OpenStreetMap Nominatim)
   const reverseGeocode = async (lat, lon) => {
@@ -105,36 +118,30 @@ export default function UploadImage() {
 
         const addr = await reverseGeocode(lat, lon);
         if (addr) {
-          setSelectedPreset("custom");
-          setCustomLocationText(addr);
+          setLocationText(addr);
           toast.success(`Location detected: ${addr}`);
         } else {
+          const closest = findClosestDistrict(lat, lon);
+          setLocationText(closest.value);
           toast.success(`GPS coordinates locked: ${lat}° N, ${lon}° E`);
         }
+
+        const closest = findClosestDistrict(lat, lon);
+        setRainfallMm(closest.rainfall);
+        setNdcuCases(closest.cases);
+        setReportDensity(closest.density);
       },
       (err) => {
         setCoords((prev) => ({ ...prev, isLocating: false }));
         if (err.code === 1) { // PERMISSION_DENIED
           setGpsBlocked(true);
-          toast.error("Browser location permission blocked. See instructions below to unblock or choose from dropdown.");
+          toast.error("Browser location permission blocked. Please allow location access or type your area.");
         } else {
           toast.error(`GPS Error: ${err.message || "Could not retrieve position"}`);
         }
       },
       { enableHighAccuracy: true, timeout: 8000 }
     );
-  };
-
-  // Handle Preset dropdown change
-  const handlePresetChange = (presetValue) => {
-    setSelectedPreset(presetValue);
-    const found = VERIFIED_LOCATIONS.find((p) => p.value === presetValue);
-    if (found && presetValue !== "custom") {
-      setCoords({ lat: found.lat, lon: found.lon, gpsActive: false, isLocating: false });
-      setRainfallMm(found.rainfall);
-      setNdcuCases(found.cases);
-      setReportDensity(found.density);
-    }
   };
 
   // Handle Map Pinning
@@ -146,9 +153,15 @@ export default function UploadImage() {
 
     const addr = await reverseGeocode(lat, lon);
     if (addr) {
-      setSelectedPreset("custom");
-      setCustomLocationText(addr);
+      setLocationText(addr);
+    } else {
+      const closest = findClosestDistrict(lat, lon);
+      setLocationText(closest.value);
     }
+    const closest = findClosestDistrict(lat, lon);
+    setRainfallMm(closest.rainfall);
+    setNdcuCases(closest.cases);
+    setReportDensity(closest.density);
   };
 
   const submit = async () => {
@@ -212,22 +225,11 @@ export default function UploadImage() {
           <div className="soft-shadow rounded-2xl border border-border bg-card p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-foreground">Location &amp; Details</h3>
-              <button
-                type="button"
-                onClick={detectLiveGPS}
-                disabled={coords.isLocating}
-                className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:text-primary/80 transition-colors bg-primary/10 border border-primary/20 px-2.5 py-1 rounded-lg"
-              >
-                {coords.isLocating ? (
-                  <>
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> Detecting GPS...
-                  </>
-                ) : (
-                  <>
-                    <Crosshair className="h-3.5 w-3.5" /> Detect My GPS
-                  </>
-                )}
-              </button>
+              {coords.gpsActive && (
+                <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md">
+                  <CheckCircle2 className="h-3 w-3" /> Live GPS Locked
+                </span>
+              )}
             </div>
 
             {gpsBlocked && (
@@ -244,34 +246,50 @@ export default function UploadImage() {
                   <li>Refresh this page and click <strong>Detect My GPS</strong> again.</li>
                 </ol>
                 <div className="mt-2 pt-2 border-t border-amber-500/20 text-[11px] font-medium text-foreground">
-                  💡 <strong>No GPS needed!</strong> You can also just pick your area from the dropdown below.
+                  💡 <strong>No GPS needed!</strong> You can also type your area name directly or use Pin on Map below.
                 </div>
               </div>
             )}
 
             <div className="space-y-4">
-              {/* Verified Location Selector (Prevents Typo Errors) */}
-              <FormField label="Select Area / District" htmlFor="presetLocation">
-                <Select
-                  id="presetLocation"
-                  value={selectedPreset}
-                  onChange={(e) => handlePresetChange(e.target.value)}
-                  options={VERIFIED_LOCATIONS.map((l) => ({ value: l.value, label: l.label }))}
-                />
-              </FormField>
-
-              {/* Free-text input only appears if 'Custom' is chosen */}
-              {selectedPreset === "custom" && (
-                <FormField label="Exact Street Address / Landmark" htmlFor="customLocation">
-                  <Input
-                    id="customLocation"
-                    icon={MapPin}
-                    value={customLocationText}
-                    onChange={(e) => setCustomLocationText(e.target.value)}
-                    placeholder="e.g. Stanley Thilakarathne Mawatha, Nugegoda"
-                  />
-                </FormField>
-              )}
+              {/* Area / District with integrated Detect My GPS button */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="areaLocation" className="text-sm font-medium text-foreground">
+                    Select Area / District
+                  </Label>
+                  <span className="text-[11px] text-muted-foreground">Type or auto-detect via GPS</span>
+                </div>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <MapPin className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <input
+                      id="areaLocation"
+                      type="text"
+                      value={locationText}
+                      onChange={(e) => setLocationText(e.target.value)}
+                      placeholder="e.g. Nugegoda, Ward 12 (Colombo) or click Detect My GPS"
+                      className="h-10 w-full rounded-xl border border-input bg-card pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary shadow-xs"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={detectLiveGPS}
+                    disabled={coords.isLocating}
+                    className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl bg-primary px-3.5 py-2 text-xs font-semibold text-white shadow-xs hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-60 transition-colors cursor-pointer"
+                  >
+                    {coords.isLocating ? (
+                      <>
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" /> Detecting...
+                      </>
+                    ) : (
+                      <>
+                        <Crosshair className="h-3.5 w-3.5" /> Detect My GPS
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
 
               {/* Verified GPS Status & Map Toggle */}
               <div className="rounded-xl border border-dashed border-border bg-muted/30 p-2.5 text-xs text-muted-foreground flex items-center justify-between">
