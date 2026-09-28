@@ -1,11 +1,24 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { MapPin, Sparkles, Loader2, CloudRain, Activity, Layers, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  MapPin,
+  Sparkles,
+  Loader2,
+  CloudRain,
+  Activity,
+  Layers,
+  ChevronDown,
+  ChevronUp,
+  Crosshair,
+  Map as MapIcon,
+  CheckCircle2,
+} from "lucide-react";
 import { toast } from "sonner";
 import Button from "../../../components/common/Button";
 import PageHeader from "../../../components/common/PageHeader";
 import { FormField, Input, Select, Textarea } from "../../../components/common/Field";
 import ImageUploader from "../../../components/ai/ImageUploader";
+import LocationPicker from "../../../components/maps/LocationPicker";
 import { aiService } from "../../../services/aiService";
 
 const CATEGORIES = [
@@ -15,25 +28,35 @@ const CATEGORIES = [
   { value: "other", label: "Other Water Holding Site" },
 ];
 
-const DISTRICT_PRESETS = {
-  "Nugegoda, Ward 12 (Colombo)": { rainfall: 125, cases: 980, density: 8, district: "Colombo" },
-  "Colombo 05 (Havelock)": { rainfall: 120, cases: 1050, density: 9, district: "Colombo" },
-  "Kelaniya, Ward 4 (Gampaha)": { rainfall: 110, cases: 750, density: 6, district: "Gampaha" },
-  "Panadura, Ward 2 (Kalutara)": { rainfall: 135, cases: 480, density: 5, district: "Kalutara" },
-  "Peradeniya (Kandy)": { rainfall: 85, cases: 420, density: 4, district: "Kandy" },
-  "Karapitiya (Galle)": { rainfall: 90, cases: 310, density: 3, district: "Galle" },
-};
+const VERIFIED_LOCATIONS = [
+  { value: "Nugegoda, Ward 12 (Colombo)", label: "Nugegoda, Ward 12 (Colombo)", lat: 6.8712, lon: 79.8890, rainfall: 125, cases: 980, density: 8, district: "Colombo" },
+  { value: "Colombo 03 (Kollupitiya)", label: "Colombo 03 (Kollupitiya)", lat: 6.9070, lon: 79.8510, rainfall: 120, cases: 1050, density: 9, district: "Colombo" },
+  { value: "Colombo 07 (Cinnamon Gardens)", label: "Colombo 07 (Cinnamon Gardens)", lat: 6.9125, lon: 79.8660, rainfall: 120, cases: 990, density: 8, district: "Colombo" },
+  { value: "Dehiwala - Mount Lavinia", label: "Dehiwala - Mount Lavinia (Colombo)", lat: 6.8402, lon: 79.8712, rainfall: 125, cases: 920, density: 7, district: "Colombo" },
+  { value: "Maharagama", label: "Maharagama (Colombo)", lat: 6.8480, lon: 79.9265, rainfall: 125, cases: 880, density: 7, district: "Colombo" },
+  { value: "Kelaniya, Ward 4 (Gampaha)", label: "Kelaniya, Ward 4 (Gampaha)", lat: 6.9538, lon: 79.9144, rainfall: 110, cases: 750, density: 6, district: "Gampaha" },
+  { value: "Negombo Municipal (Gampaha)", label: "Negombo Municipal (Gampaha)", lat: 7.2083, lon: 79.8358, rainfall: 110, cases: 680, density: 6, district: "Gampaha" },
+  { value: "Panadura, Ward 2 (Kalutara)", label: "Panadura, Ward 2 (Kalutara)", lat: 6.7134, lon: 79.9074, rainfall: 135, cases: 480, density: 5, district: "Kalutara" },
+  { value: "Peradeniya (Kandy)", label: "Peradeniya (Kandy)", lat: 7.2600, lon: 80.5900, rainfall: 85, cases: 420, density: 4, district: "Kandy" },
+  { value: "Kandy Municipal Area", label: "Kandy Municipal Area", lat: 7.2906, lon: 80.6337, rainfall: 95, cases: 450, density: 5, district: "Kandy" },
+  { value: "Karapitiya (Galle)", label: "Karapitiya (Galle)", lat: 6.0645, lon: 80.2290, rainfall: 90, cases: 310, density: 3, district: "Galle" },
+  { value: "Galle Fort", label: "Galle Fort", lat: 6.0267, lon: 80.2170, rainfall: 90, cases: 290, density: 3, district: "Galle" },
+  { value: "Kurunegala Town", label: "Kurunegala Town", lat: 7.4863, lon: 80.3623, rainfall: 80, cases: 380, density: 4, district: "Kurunegala" },
+  { value: "custom", label: "✍️ Enter Other Address / Custom Location...", lat: 6.8712, lon: 79.8890, rainfall: 100, cases: 500, density: 5, district: "Western Province" },
+];
 
 export default function UploadImage() {
   const navigate = useNavigate();
   const [file, setFile] = useState(null);
-  const [location, setLocation] = useState("Nugegoda, Ward 12 (Colombo)");
+  const [selectedPreset, setSelectedPreset] = useState("Nugegoda, Ward 12 (Colombo)");
+  const [customLocationText, setCustomLocationText] = useState("");
   const [category, setCategory] = useState("container");
   const [description, setDescription] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
-  // Geolocation coordinates (defaults to Western Province / Nugegoda)
-  const [coords, setCoords] = useState({ lat: 6.8712, lon: 79.8890, gpsActive: false });
+  // Geolocation coordinates
+  const [coords, setCoords] = useState({ lat: 6.8712, lon: 79.8890, gpsActive: false, isLocating: false });
+  const [showMap, setShowMap] = useState(false);
 
   // Optional manual simulation mode (for testing / developers)
   const [simulationMode, setSimulationMode] = useState(false);
@@ -41,34 +64,84 @@ export default function UploadImage() {
   const [ndcuCases, setNdcuCases] = useState(980);
   const [reportDensity, setReportDensity] = useState(8);
 
-  // Attempt to auto-detect browser GPS on mount
-  useEffect(() => {
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          setCoords({
-            lat: Number(pos.coords.latitude.toFixed(4)),
-            lon: Number(pos.coords.longitude.toFixed(4)),
-            gpsActive: true,
-          });
-        },
-        () => {
-          // Fallback gracefully to default coordinates
-        },
-        { timeout: 5000 }
-      );
-    }
-  }, []);
+  const activeLocation = selectedPreset === "custom" ? (customLocationText || "Custom Location") : selectedPreset;
 
-  // Update environmental defaults when location preset changes
-  useEffect(() => {
-    if (DISTRICT_PRESETS[location]) {
-      const p = DISTRICT_PRESETS[location];
-      setRainfallMm(p.rainfall);
-      setNdcuCases(p.cases);
-      setReportDensity(p.density);
+  // Reverse geocoding helper (OpenStreetMap Nominatim)
+  const reverseGeocode = async (lat, lon) => {
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`, {
+        headers: { "User-Agent": "DengueGuard-App/1.0" }
+      });
+      const data = await res.json();
+      if (data && data.display_name) {
+        const parts = data.display_name.split(",").map((p) => p.trim());
+        return parts.slice(0, 3).join(", ");
+      }
+    } catch {
+      // Graceful fallback
     }
-  }, [location]);
+    return null;
+  };
+
+  // One-click live GPS detection
+  const detectLiveGPS = () => {
+    if (!("geolocation" in navigator)) {
+      toast.error("Geolocation is not supported by your browser");
+      return;
+    }
+
+    setCoords((prev) => ({ ...prev, isLocating: true }));
+    toast.info("Accessing device GPS coordinates...");
+
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const lat = Number(pos.coords.latitude.toFixed(4));
+        const lon = Number(pos.coords.longitude.toFixed(4));
+
+        setCoords({ lat, lon, gpsActive: true, isLocating: false });
+
+        const addr = await reverseGeocode(lat, lon);
+        if (addr) {
+          setSelectedPreset("custom");
+          setCustomLocationText(addr);
+          toast.success(`Location detected: ${addr}`);
+        } else {
+          toast.success(`GPS coordinates locked: ${lat}° N, ${lon}° E`);
+        }
+      },
+      (err) => {
+        setCoords((prev) => ({ ...prev, isLocating: false }));
+        toast.error(`GPS Error: ${err.message || "Could not retrieve position"}`);
+      },
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  };
+
+  // Handle Preset dropdown change
+  const handlePresetChange = (presetValue) => {
+    setSelectedPreset(presetValue);
+    const found = VERIFIED_LOCATIONS.find((p) => p.value === presetValue);
+    if (found && presetValue !== "custom") {
+      setCoords({ lat: found.lat, lon: found.lon, gpsActive: false, isLocating: false });
+      setRainfallMm(found.rainfall);
+      setNdcuCases(found.cases);
+      setReportDensity(found.density);
+    }
+  };
+
+  // Handle Map Pinning
+  const handleMapPin = async (newPos) => {
+    if (!newPos) return;
+    const lat = Number(newPos.lat.toFixed(4));
+    const lon = Number(newPos.lng.toFixed(4));
+    setCoords({ lat, lon, gpsActive: true, isLocating: false });
+
+    const addr = await reverseGeocode(lat, lon);
+    if (addr) {
+      setSelectedPreset("custom");
+      setCustomLocationText(addr);
+    }
+  };
 
   const submit = async () => {
     if (!file) {
@@ -81,7 +154,7 @@ export default function UploadImage() {
       toast.info("Analyzing with YOLOv8 Vision & Random Forest ML...");
 
       const payload = {
-        location,
+        location: activeLocation,
         category,
         description,
         latitude: coords.lat,
@@ -102,7 +175,7 @@ export default function UploadImage() {
         state: {
           prediction,
           imagePreview: URL.createObjectURL(file),
-          location,
+          location: activeLocation,
           category,
           description,
         },
@@ -129,23 +202,84 @@ export default function UploadImage() {
 
         <div className="space-y-4">
           <div className="soft-shadow rounded-2xl border border-border bg-card p-6">
-            <h3 className="mb-4 font-semibold text-foreground">Location &amp; Details</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-foreground">Location &amp; Details</h3>
+              <button
+                type="button"
+                onClick={detectLiveGPS}
+                disabled={coords.isLocating}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:text-primary/80 transition-colors bg-primary/10 border border-primary/20 px-2.5 py-1 rounded-lg"
+              >
+                {coords.isLocating ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> Detecting GPS...
+                  </>
+                ) : (
+                  <>
+                    <Crosshair className="h-3.5 w-3.5" /> Detect My GPS
+                  </>
+                )}
+              </button>
+            </div>
+
             <div className="space-y-4">
-              <FormField label="Location / District" htmlFor="location">
-                <Input
-                  id="location"
-                  icon={MapPin}
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  placeholder="e.g. Nugegoda, Ward 12 (Colombo)"
+              {/* Verified Location Selector (Prevents Typo Errors) */}
+              <FormField label="Select Area / District" htmlFor="presetLocation">
+                <Select
+                  id="presetLocation"
+                  value={selectedPreset}
+                  onChange={(e) => handlePresetChange(e.target.value)}
+                  options={VERIFIED_LOCATIONS.map((l) => ({ value: l.value, label: l.label }))}
                 />
-                <div className="rounded-xl border border-dashed border-border bg-muted/30 p-2.5 text-xs text-muted-foreground flex items-center justify-between">
-                  <span>📍 GPS: {coords.lat}° N, {coords.lon}° E</span>
-                  <span className="font-medium text-primary">
-                    {coords.gpsActive ? "Live GPS Connected" : "Western Province Baseline"}
-                  </span>
-                </div>
               </FormField>
+
+              {/* Free-text input only appears if 'Custom' is chosen */}
+              {selectedPreset === "custom" && (
+                <FormField label="Exact Street Address / Landmark" htmlFor="customLocation">
+                  <Input
+                    id="customLocation"
+                    icon={MapPin}
+                    value={customLocationText}
+                    onChange={(e) => setCustomLocationText(e.target.value)}
+                    placeholder="e.g. Stanley Thilakarathne Mawatha, Nugegoda"
+                  />
+                </FormField>
+              )}
+
+              {/* Verified GPS Status & Map Toggle */}
+              <div className="rounded-xl border border-dashed border-border bg-muted/30 p-2.5 text-xs text-muted-foreground flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <span className="font-mono text-foreground font-medium">
+                    📍 {coords.lat}° N, {coords.lon}° E
+                  </span>
+                  {coords.gpsActive && (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600">
+                      <CheckCircle2 className="h-3 w-3" /> Live GPS
+                    </span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowMap(!showMap)}
+                  className="inline-flex items-center gap-1 text-primary hover:underline font-medium"
+                >
+                  <MapIcon className="h-3.5 w-3.5" />
+                  {showMap ? "Hide Map" : "Pin on Map"}
+                </button>
+              </div>
+
+              {/* Interactive Map Pinning */}
+              {showMap && (
+                <div className="rounded-xl border border-border p-2 bg-muted/20">
+                  <div className="text-[11px] text-muted-foreground mb-1.5 flex items-center justify-between">
+                    <span>Click or tap anywhere on the map to pin the exact hazard location:</span>
+                  </div>
+                  <LocationPicker
+                    value={{ lat: coords.lat, lng: coords.lon }}
+                    onChange={handleMapPin}
+                  />
+                </div>
+              )}
 
               <FormField label="Category" htmlFor="category">
                 <Select
@@ -160,7 +294,7 @@ export default function UploadImage() {
                 <Textarea
                   id="description"
                   placeholder="Describe what you observed (e.g. discarded tires holding rainwater near roadside)…"
-                  className="min-h-[85px] resize-none"
+                  className="min-h-[75px] resize-none"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                 />
