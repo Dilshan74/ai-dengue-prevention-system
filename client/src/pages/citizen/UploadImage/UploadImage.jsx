@@ -12,6 +12,7 @@ import {
   Crosshair,
   Map as MapIcon,
   CheckCircle2,
+  AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 import Button from "../../../components/common/Button";
@@ -57,6 +58,7 @@ export default function UploadImage() {
   // Geolocation coordinates
   const [coords, setCoords] = useState({ lat: 6.8712, lon: 79.8890, gpsActive: false, isLocating: false });
   const [showMap, setShowMap] = useState(false);
+  const [gpsBlocked, setGpsBlocked] = useState(false);
 
   // Optional manual simulation mode (for testing / developers)
   const [simulationMode, setSimulationMode] = useState(false);
@@ -99,6 +101,7 @@ export default function UploadImage() {
         const lon = Number(pos.coords.longitude.toFixed(4));
 
         setCoords({ lat, lon, gpsActive: true, isLocating: false });
+        setGpsBlocked(false);
 
         const addr = await reverseGeocode(lat, lon);
         if (addr) {
@@ -111,7 +114,12 @@ export default function UploadImage() {
       },
       (err) => {
         setCoords((prev) => ({ ...prev, isLocating: false }));
-        toast.error(`GPS Error: ${err.message || "Could not retrieve position"}`);
+        if (err.code === 1) { // PERMISSION_DENIED
+          setGpsBlocked(true);
+          toast.error("Browser location permission blocked. See instructions below to unblock or choose from dropdown.");
+        } else {
+          toast.error(`GPS Error: ${err.message || "Could not retrieve position"}`);
+        }
       },
       { enableHighAccuracy: true, timeout: 8000 }
     );
@@ -221,6 +229,25 @@ export default function UploadImage() {
                 )}
               </button>
             </div>
+
+            {gpsBlocked && (
+              <div className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-200">
+                <div className="font-semibold flex items-center gap-1.5 text-amber-700 dark:text-amber-300 mb-1">
+                  <AlertTriangle className="h-4 w-4" /> Browser GPS is blocked
+                </div>
+                <p className="leading-relaxed">
+                  Your browser blocked location access for localhost. To enable device GPS:
+                </p>
+                <ol className="list-decimal list-inside mt-1 space-y-1 opacity-90 pl-1">
+                  <li>Click the <strong>tune / sliders icon</strong> (or lock 🔒) in the address bar next to the URL.</li>
+                  <li>Set <strong>Location</strong> to <strong>Allow</strong>.</li>
+                  <li>Refresh this page and click <strong>Detect My GPS</strong> again.</li>
+                </ol>
+                <div className="mt-2 pt-2 border-t border-amber-500/20 text-[11px] font-medium text-foreground">
+                  💡 <strong>No GPS needed!</strong> You can also just pick your area from the dropdown below.
+                </div>
+              </div>
+            )}
 
             <div className="space-y-4">
               {/* Verified Location Selector (Prevents Typo Errors) */}
