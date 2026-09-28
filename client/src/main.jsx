@@ -4,15 +4,21 @@ import { APIProvider } from "@vis.gl/react-google-maps";
 import App from "./App";
 import "./index.css";
 
-console.log("Maps API Key:", import.meta.env.VITE_GOOGLE_MAPS_API_KEY);
+const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+const hasGoogleKey = Boolean(apiKey && apiKey !== "undefined" && apiKey.trim().length > 5);
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
-    <APIProvider 
-      apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}
-      onLoad={() => console.log('Maps API has loaded.')}
-    >
+    {hasGoogleKey ? (
+      <APIProvider 
+        apiKey={apiKey}
+        onLoad={() => console.log('Maps API has loaded.')}
+      >
+        <App />
+      </APIProvider>
+    ) : (
       <App />
-    </APIProvider>
+    )}
   </StrictMode>,
 );
+

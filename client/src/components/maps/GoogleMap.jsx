@@ -74,21 +74,29 @@ export default function GoogleMap({
     [onMapClick],
   );
 
+  const hasGoogleKey = Boolean(
+    import.meta.env.VITE_GOOGLE_MAPS_API_KEY &&
+    import.meta.env.VITE_GOOGLE_MAPS_API_KEY !== "undefined" &&
+    import.meta.env.VITE_GOOGLE_MAPS_API_KEY.trim().length > 5
+  );
+
   return (
     <div
-      className={cn("map-container relative rounded-2xl overflow-hidden border border-border", className)}
+      className={cn("map-container relative rounded-2xl overflow-hidden border border-border min-h-[350px]", className)}
       style={style}
     >
       <div className="absolute inset-0">
-        <Map
-          defaultCenter={center || SRI_LANKA}
-          defaultZoom={zoom || DEFAULT_ZOOM}
-          mapId="DEMO_MAP_ID"
-          gestureHandling="cooperative"
-          disableDefaultUI={false}
-          onClick={handleMapClick}
-          style={{ width: "100%", height: "100%" }}
-        >
+        {hasGoogleKey ? (
+          <Map
+            defaultCenter={center || SRI_LANKA}
+            defaultZoom={zoom || DEFAULT_ZOOM}
+            mapId="DEMO_MAP_ID"
+            gestureHandling="cooperative"
+            disableDefaultUI={false}
+            onClick={handleMapClick}
+            style={{ width: "100%", height: "100%" }}
+          >
+
         {markers.map((marker) => {
           const colors = PIN_COLORS[marker.colorKey] || PIN_COLORS.default;
           return (
@@ -126,7 +134,20 @@ export default function GoogleMap({
 
         {children}
         </Map>
+        ) : (
+          <div className="relative w-full h-full">
+            <iframe
+              title="OpenStreetMap"
+              width="100%"
+              height="100%"
+              style={{ border: 0 }}
+              src={`https://www.openstreetmap.org/export/embed.html?bbox=${(center?.lng || SRI_LANKA.lng) - 0.25}%2C${(center?.lat || SRI_LANKA.lat) - 0.25}%2C${(center?.lng || SRI_LANKA.lng) + 0.25}%2C${(center?.lat || SRI_LANKA.lat) + 0.25}&layer=mapnik&marker=${center?.lat || SRI_LANKA.lat}%2C${center?.lng || SRI_LANKA.lng}`}
+              className="w-full h-full"
+            />
+          </div>
+        )}
       </div>
     </div>
   );
 }
+
