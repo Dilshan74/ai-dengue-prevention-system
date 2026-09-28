@@ -4,12 +4,15 @@ export const citizenService = {
   dashboard: () => request({ url: "/citizen/dashboard" }),
   complaints: (params) => request({ url: "/citizen/complaints", params }),
   complaint: (id) => request({ url: `/citizen/complaints/${id}` }),
-  createComplaint: (formData) =>
+  createComplaint: (data) =>
     request({
       url: "/citizen/complaints",
       method: "post",
-      data: formData,
-      headers: { "Content-Type": "multipart/form-data" },
+      data,
+      headers:
+        typeof FormData !== "undefined" && data instanceof FormData
+          ? { "Content-Type": "multipart/form-data" }
+          : { "Content-Type": "application/json" },
     }),
   profile: () => request({ url: "/citizen/profile" }),
   updateProfile: (payload) =>

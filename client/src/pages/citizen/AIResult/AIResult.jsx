@@ -18,10 +18,12 @@ import {
   TrendingUp,
   MapPin,
   Info,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import Button from "../../../components/common/Button";
 import PageHeader from "../../../components/common/PageHeader";
+import citizenService from "../../../services/citizenService";
 
 export default function AIResult() {
   const location = useLocation();
@@ -32,6 +34,8 @@ export default function AIResult() {
   const reportLocation = state.location || prediction?.location || "Nugegoda, Ward 12 (Colombo)";
 
   const [showAnnotated, setShowAnnotated] = useState(true);
+  const [isSending, setIsSending] = useState(false);
+  const [dispatchedReport, setDispatchedReport] = useState(null);
 
   // Machine Learning Risk values from Random Forest model
   const rfRiskScore = prediction?.rfRiskScore !== undefined ? Number(prediction.rfRiskScore) : 76.9;
@@ -126,6 +130,46 @@ export default function AIResult() {
     downloadAnchor.click();
     downloadAnchor.remove();
     toast.success("AI/ML Risk analysis report downloaded");
+  };
+
+  const handleSendToPhi = async () => {
+    if (dispatchedReport) {
+      toast.info(`Report already dispatched with ID: ${dispatchedReport.id}`);
+      return;
+    }
+
+    try {
+      setIsSending(true);
+      toast.info("Dispatching inspection report to PHI officer...");
+
+      const payload = {
+        location: reportLocation,
+        address: reportLocation,
+        description:
+          state.description ||
+          `AI Dengue Risk Alert: ${rfRiskLevel} risk site detected (${detectedObjects.map((o) => o.label).join(", ") || "breeding hazard"}).`,
+        category: state.category || "container",
+        lat: state.coords?.lat || prediction?.latitude || 6.8712,
+        lng: state.coords?.lon || prediction?.longitude || 79.8890,
+        risk: rfRiskLevel,
+        image: prediction?.originalImage || prediction?.annotatedImage || originalPreview,
+        images: [prediction?.originalImage || prediction?.annotatedImage || originalPreview].filter(Boolean),
+        rfRiskScore: rfRiskScore,
+        confidence: confidence,
+        detectedObjects: detectedObjects,
+      };
+
+      const res = await citizenService.createComplaint(payload);
+      setDispatchedReport(res);
+      toast.success(
+        `Report ${res.id} successfully sent to PHI Officer (${res.phi || "Assigned"}) for field inspection!`
+      );
+    } catch (err) {
+      console.error("Failed to send report to PHI:", err);
+      toast.error(err.response?.data?.message || err.message || "Failed to dispatch report to PHI");
+    } finally {
+      setIsSending(false);
+    }
   };
 
   return (
@@ -379,16 +423,53 @@ export default function AIResult() {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex flex-wrap gap-3 pt-2">
-            <Button
-              className="flex-1 font-semibold shadow-md"
-              onClick={() => toast.success("Notification and report dispatched to Ward PHI team")}
-            >
-              <Eye className="h-4 w-4" /> Send to PHI for Inspection
-            </Button>
-            <Button variant="outline" onClick={downloadReport}>
-              <Download className="h-4 w-4" /> Download Report
-            </Button>
+          <div className="space-y-3 pt-2">
+            <div className="flex flex-wrap gap-3">
+              <Button
+                className="flex-1 font-semibold shadow-md"
+                onClick={handleSendToPhi}
+                disabled={isSending || Boolean(dispatchedReport)}
+                variant={dispatchedReport ? "outline" : "default"}
+              >
+                {isSending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" /> Dispatching to PHI...
+                  </>
+                ) : dispatchedReport ? (
+                  <>
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600" /> Dispatched to PHI ({dispatchedReport.id})
+                  </>
+                ) : (
+                  <>
+                    <Eye className="h-4 w-4" /> Send to PHI for Inspection
+                  </>
+                )}
+              </Button>
+              <Button variant="outline" onClick={downloadReport}>
+                <Download className="h-4 w-4" /> Download Report
+              </Button>
+            </div>
+
+            {/* Dispatched Confirmation Card */}
+            {dispatchedReport && (
+              <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3.5 text-xs text-emerald-800 dark:text-emerald-200">
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="font-semibold flex items-center gap-1.5 text-emerald-700 dark:text-emerald-300">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                    Report {dispatchedReport.id} Successfully Dispatched
+                  </div>
+                  <Link
+                    to="/citizen/complaints"
+                    className="text-primary hover:underline font-semibold text-xs whitespace-nowrap"
+                  >
+                    Track in My Complaints →
+                  </Link>
+                </div>
+                <p className="leading-relaxed opacity-90">
+                  Assigned to <strong>PHI Officer: {dispatchedReport.phi || "Regional Unit"}</strong>. The officer has received a high-priority alert on the PHI portal to conduct on-site inspection and larviciding.
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>

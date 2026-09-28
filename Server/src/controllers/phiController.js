@@ -6,7 +6,18 @@ import { asyncHandler, paginate, nextId, ApiError } from "../utils/helpers.js";
 import { uploadUrl } from "../middleware/upload.js";
 
 export const dashboard = asyncHandler(async (req, res) => {
-  const myReports = await Report.find({ phiId: req.user.id }).lean();
+  const phiFilter = {
+    $or: [
+      { phiId: req.user.id },
+      { phiId: null },
+      { phi: "—" },
+      { phi: req.user.name },
+      { status: "Pending" },
+      ...(req.user.area ? [{ location: new RegExp(req.user.area, "i") }] : []),
+    ],
+  };
+
+  const myReports = await Report.find(phiFilter).lean();
   const myVisits = await Visit.find({ phiId: req.user.id }).lean();
 
   const stats = {
@@ -26,16 +37,29 @@ export const dashboard = asyncHandler(async (req, res) => {
 export const listReports = asyncHandler(async (req, res) => {
   const { status, risk, search, page = 1, pageSize = 10 } = req.query;
 
-  const query = { phiId: req.user.id };
-  if (status) query.status = status;
-  if (risk) query.risk = risk;
+  const query = {
+    $or: [
+      { phiId: req.user.id },
+      { phiId: null },
+      { phi: "—" },
+      { phi: req.user.name },
+      { status: "Pending" },
+      ...(req.user.area ? [{ location: new RegExp(req.user.area, "i") }] : []),
+    ],
+  };
+  if (status && status !== "all") query.status = status;
+  if (risk && risk !== "all") query.risk = risk;
 
   let items = await Report.find(query).sort({ date: -1 }).lean();
 
   if (search) {
     const q = String(search).toLowerCase();
     items = items.filter(
-      (r) => r.id.toLowerCase().includes(q) || r.location.toLowerCase().includes(q),
+      (r) =>
+        r.id.toLowerCase().includes(q) ||
+        r.location.toLowerCase().includes(q) ||
+        r.citizenName?.toLowerCase().includes(q) ||
+        r.description?.toLowerCase().includes(q),
     );
   }
 
@@ -43,7 +67,17 @@ export const listReports = asyncHandler(async (req, res) => {
 });
 
 export const getReport = asyncHandler(async (req, res) => {
-  const report = await Report.findOne({ id: req.params.id, phiId: req.user.id }).lean();
+  const report = await Report.findOne({
+    id: req.params.id,
+    $or: [
+      { phiId: req.user.id },
+      { phiId: null },
+      { phi: "—" },
+      { phi: req.user.name },
+      { status: "Pending" },
+      ...(req.user.area ? [{ location: new RegExp(req.user.area, "i") }] : []),
+    ],
+  }).lean();
   if (!report) throw new ApiError(404, "Report not found");
   res.json(report);
 });
@@ -58,10 +92,14 @@ function addHistory(report, status, comments) {
 }
 
 export const acceptReport = asyncHandler(async (req, res) => {
-  const report = await Report.findOne({ id: req.params.id, phiId: req.user.id }).lean();
+  const report = await Report.findOne({ id: req.params.id }).lean();
   if (!report) throw new ApiError(404, "Report not found");
 
-  const next = addHistory(report, "Accepted", req.body?.comments);
+  const next = {
+    ...addHistory(report, "Accepted", req.body?.comments),
+    phi: req.user.name,
+    phiId: req.user.id,
+  };
   const updated = await Report.findOneAndUpdate({ id: report.id }, next, { new: true }).lean();
 
   await Notification.create({
@@ -79,10 +117,14 @@ export const acceptReport = asyncHandler(async (req, res) => {
 });
 
 export const rejectReport = asyncHandler(async (req, res) => {
-  const report = await Report.findOne({ id: req.params.id, phiId: req.user.id }).lean();
+  const report = await Report.findOne({ id: req.params.id }).lean();
   if (!report) throw new ApiError(404, "Report not found");
 
-  const next = addHistory(report, "Rejected", req.body?.comments);
+  const next = {
+    ...addHistory(report, "Rejected", req.body?.comments),
+    phi: req.user.name,
+    phiId: req.user.id,
+  };
   const updated = await Report.findOneAndUpdate({ id: report.id }, next, { new: true }).lean();
 
   await Notification.create({

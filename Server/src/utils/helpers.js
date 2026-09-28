@@ -4,11 +4,28 @@ import { v4 as uuid } from "uuid";
 export const asyncHandler = (fn) => (req, res, next) =>
   Promise.resolve(fn(req, res, next)).catch(next);
 
-/** Sequential, human-friendly report IDs like DG-1042. */
-let reportCounter = 1042;
+/** Sequential, collision-safe report IDs like DG-1044. */
+export async function getNextReportId(ReportModel) {
+  try {
+    if (ReportModel) {
+      const allReports = await ReportModel.find({ id: /^DG-\d+$/ }, "id").lean();
+      if (allReports && allReports.length > 0) {
+        let maxNum = 1042;
+        for (const r of allReports) {
+          const n = parseInt(r.id.replace("DG-", ""), 10);
+          if (!isNaN(n) && n > maxNum) maxNum = n;
+        }
+        return `DG-${maxNum + 1}`;
+      }
+    }
+  } catch (err) {
+    console.warn("Could not query latest report id:", err);
+  }
+  return `DG-${Math.floor(Date.now() / 1000) % 90000 + 10000}`;
+}
+
 export function nextReportId() {
-  reportCounter += 1;
-  return `DG-${reportCounter}`;
+  return `DG-${Math.floor(Date.now() / 1000) % 90000 + 10000}`;
 }
 
 export function nextId(prefix) {

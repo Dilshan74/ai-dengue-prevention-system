@@ -1,7 +1,8 @@
 import Report from "../models/report.js";
 import User from "../models/user.js";
+import Area from "../models/area.js";
 import DengueRisk from "../models/dengueRisk.js";
-import { asyncHandler, nextReportId, nextId, paginate, ApiError } from "../utils/helpers.js";
+import { asyncHandler, getNextReportId, nextReportId, nextId, paginate, ApiError } from "../utils/helpers.js";
 import { uploadUrl } from "../middleware/upload.js";
 import Notification from "../models/notification.js";
 
@@ -83,15 +84,46 @@ export const getComplaint = asyncHandler(async (req, res) => {
 });
 
 export const createComplaint = asyncHandler(async (req, res) => {
-  const { description, location, address, lat, lng } = req.body;
+  const { description, location, address, lat, lng, risk: bodyRisk } = req.body;
   if (!description || !location) {
     throw new ApiError(400, "Description and location are required");
   }
 
-  const images = (req.files || []).map((f) => uploadUrl(f.filename));
+  let images = (req.files || []).map((f) => uploadUrl(f.filename));
+  if (images.length === 0) {
+    if (req.body.images) {
+      images = Array.isArray(req.body.images) ? req.body.images : [req.body.images];
+    } else if (req.body.image) {
+      images = [req.body.image];
+    }
+  }
+
+  const primaryImage = images[0] || req.body.image || "🪣";
+  const finalRisk = bodyRisk || "Medium";
+
+  // Smart Area / PHI Auto-Assignment
+  let assignedPhi = null;
+  const areaName = (location || "").split(",")[0].trim();
+  if (areaName) {
+    const areaDoc = await Area.findOne({ name: new RegExp(areaName, "i") }).lean();
+    if (areaDoc && areaDoc.phiId) {
+      assignedPhi = await User.findOne({ id: areaDoc.phiId, role: "phi" }).lean();
+    }
+    if (!assignedPhi) {
+      assignedPhi = await User.findOne({
+        role: "phi",
+        area: new RegExp(areaName, "i"),
+      }).lean();
+    }
+  }
+
+  // Fallback: assign to any active PHI in system
+  if (!assignedPhi) {
+    assignedPhi = await User.findOne({ role: "phi" }).lean();
+  }
 
   const report = await Report.create({
-    id: nextReportId(),
+    id: await getNextReportId(Report),
     citizenId: req.user.id,
     citizenName: req.user.name,
     description,
@@ -99,26 +131,49 @@ export const createComplaint = asyncHandler(async (req, res) => {
     address: address || location,
     lat: lat ? Number(lat) : null,
     lng: lng ? Number(lng) : null,
-    image: images[0] || "🪣",
-    images,
+    image: primaryImage,
+    images: images.filter(Boolean),
     status: "Pending",
-    risk: "Medium",
-    phi: "—",
-    phiId: null,
+    risk: finalRisk,
+    phi: assignedPhi ? assignedPhi.name : "—",
+    phiId: assignedPhi ? assignedPhi.id : null,
     date: new Date(),
     updated: new Date(),
     comments: [],
-    history: [{ status: "Pending", date: new Date(), comments: "Report submitted" }],
+    history: [{ status: "Pending", date: new Date(), comments: "Report submitted for PHI inspection" }],
   });
 
+  // Notify Admin
   await Notification.create({
     id: nextId("N"),
     userId: null,
     role: "admin",
     type: "warning",
-    title: "New Complaint Submitted",
-    body: `A new complaint (${report.id}) has been reported at ${location}.`,
+    title: "New Dengue Report Submitted",
+    body: `A new ${report.risk} risk report (${report.id}) has been reported at ${location}.`,
   });
+
+  // Notify PHI
+  if (assignedPhi) {
+    await Notification.create({
+      id: nextId("N"),
+      userId: assignedPhi.id,
+      role: "phi",
+      type: "warning",
+      title: "New Dengue Site Report Dispatched",
+      body: `A new ${report.risk} risk report (${report.id}) at ${location} has been assigned for inspection.`,
+      read: false,
+      createdAt: new Date(),
+    });
+  }
+
+  // Update Area report count if available
+  if (areaName) {
+    await Area.findOneAndUpdate(
+      { name: new RegExp(areaName, "i") },
+      { $inc: { reports: 1 } }
+    );
+  }
 
   res.status(201).json(report.toObject());
 });
