@@ -212,11 +212,25 @@ async def predict(
     rf_bundle = get_rf_model()
     if rf_bundle is not None:
         try:
+            import pandas as pd
             reg = rf_bundle["regressor"]
             clf = rf_bundle["classifier"]
-            features = [[max_severity, max_conf, rainfall_mm, ndcu_cases, report_density]]
-            rf_score = round(float(reg.predict(features)[0]), 1)
-            rf_level = str(clf.predict(features)[0])
+            cols = rf_bundle.get("feature_cols", [
+                "ai_severity_score",
+                "ai_confidence",
+                "recent_rainfall_mm",
+                "ndcu_district_cases",
+                "report_density"
+            ])
+            features_df = pd.DataFrame([{
+                "ai_severity_score": max_severity,
+                "ai_confidence": max_conf,
+                "recent_rainfall_mm": rainfall_mm,
+                "ndcu_district_cases": ndcu_cases,
+                "report_density": report_density
+            }], columns=cols)
+            rf_score = round(float(reg.predict(features_df)[0]), 1)
+            rf_level = str(clf.predict(features_df)[0])
         except Exception as err:
             print(f"[AI Service] RF prediction error: {err}")
 
