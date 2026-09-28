@@ -214,7 +214,12 @@ export default function ReportDetails() {
               >
                 <X className="h-4 w-4" /> Reject Report
               </Button>
-              <Button as={Link} to="/phi/visits" variant="outline">
+              <Button
+                as={Link}
+                to={`/phi/visits?reportId=${report.id}`}
+                state={{ report }}
+                variant="outline"
+              >
                 <MapPin className="h-4 w-4" /> Plan Field Visit
               </Button>
             </div>

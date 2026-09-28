@@ -175,7 +175,14 @@ export default function ViewReports() {
           >
             <X className="h-3.5 w-3.5" />
           </Button>
-          <Button as={Link} to="/phi/visits" size="sm" variant="ghost" aria-label={`Visit ${row.id}`}>
+          <Button
+            as={Link}
+            to={`/phi/visits?reportId=${row.id}`}
+            state={{ report: row }}
+            size="sm"
+            variant="ghost"
+            aria-label={`Visit ${row.id}`}
+          >
             <MapPin className="h-3.5 w-3.5" />
           </Button>
         </div>

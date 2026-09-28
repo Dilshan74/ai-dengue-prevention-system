@@ -79,6 +79,24 @@ export const getReport = asyncHandler(async (req, res) => {
     ],
   }).lean();
   if (!report) throw new ApiError(404, "Report not found");
+
+  if (report.citizenId) {
+    const citizen = await User.findOne({ id: report.citizenId }).lean();
+    if (citizen) {
+      report.citizenMobile = citizen.mobile || "";
+      report.citizenEmail = citizen.email || "";
+      if (!report.address && citizen.address) {
+        report.address = citizen.address;
+      }
+    }
+  }
+
+  // Ensure lat / lng have sensible defaults if missing
+  if (report.lat == null || report.lng == null) {
+    report.lat = 6.8712;
+    report.lng = 79.8890;
+  }
+
   res.json(report);
 });
 

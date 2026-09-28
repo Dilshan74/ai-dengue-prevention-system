@@ -5,7 +5,18 @@ import { toCsv, toExcel, toPdf } from "../utils/exportUtils.js";
 /** Scope the report query to what the caller's role is allowed to see. */
 function scopedQuery(user) {
   if (user.role === "admin") return {};
-  if (user.role === "phi") return { phiId: user.id };
+  if (user.role === "phi") {
+    return {
+      $or: [
+        { phiId: user.id },
+        { phiId: null },
+        { phi: "—" },
+        { phi: user.name },
+        { status: "Pending" },
+        ...(user.area ? [{ location: new RegExp(user.area, "i") }] : []),
+      ],
+    };
+  }
   return { citizenId: user.id };
 }
 
@@ -40,6 +51,8 @@ export const updateStatus = asyncHandler(async (req, res) => {
     {
       status,
       updated: new Date(),
+      phi: req.user.name,
+      phiId: req.user.id,
       $push: { history: { status, date: new Date(), comments: comments || "" } },
     },
     { new: true }

@@ -21,6 +21,7 @@ export const phiRoutes = (
       <Route path="reports/:id" element={<ReportDetails />} />
       <Route path="prediction" element={<AIPrediction />} />
       <Route path="visits" element={<VisitLocations />} />
+      <Route path="visits/:id" element={<VisitLocations />} />
       <Route path="photos" element={<InspectionPhotos />} />
       <Route path="generate" element={<GenerateReports />} />
       <Route path="notifications" element={<Notifications />} />
