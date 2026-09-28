@@ -14,6 +14,7 @@ export default function ReportDetails() {
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
   useEffect(() => {
     setLoading(true);
@@ -73,6 +74,14 @@ export default function ReportDetails() {
   const citizenName = report.citizenName || report.name || "Citizen";
   const formattedDate = report.date ? new Date(report.date).toLocaleString() : "Recently submitted";
 
+  const availableImages = (report.images && report.images.length > 0
+    ? report.images
+    : [report.image]
+  ).filter((img) => Boolean(img) && !["🪣", "🌱", "—"].includes(img) && !img.startsWith("blob:"));
+
+  const activeImage = availableImages[selectedImageIndex] || availableImages[0] || report.image;
+  const isImageValid = activeImage && (activeImage.startsWith("/") || activeImage.startsWith("http"));
+
   return (
     <>
       <PageHeader
@@ -89,17 +98,40 @@ export default function ReportDetails() {
         {/* Left Column: Submitted Image */}
         <div className="space-y-4">
           <div className="soft-shadow rounded-2xl border border-border bg-card p-5">
-            <h3 className="font-semibold text-foreground mb-3 flex items-center justify-between">
-              <span>Site Photo &amp; Breeding Evidence</span>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold text-foreground">Site Photo &amp; Breeding Evidence</h3>
               <Badge className={STATUS_TINT[report.status] || STATUS_TINT.Pending}>{report.status}</Badge>
-            </h3>
+            </div>
+
+            {/* Photo selector pills if multiple available */}
+            {availableImages.length > 1 && (
+              <div className="flex items-center gap-1.5 mb-3 bg-muted/60 p-1 rounded-lg text-xs">
+                {availableImages.map((img, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setSelectedImageIndex(idx)}
+                    className={`flex-1 rounded-md py-1 px-2 font-medium transition-colors ${
+                      selectedImageIndex === idx
+                        ? "bg-card text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {img.includes("annotated") ? "YOLO Detection" : `Photo ${idx + 1}`}
+                  </button>
+                ))}
+              </div>
+            )}
 
             <div className="relative overflow-hidden rounded-xl border border-border bg-slate-950 aspect-[4/3] flex items-center justify-center">
-              {report.image && (report.image.startsWith("/") || report.image.startsWith("http")) ? (
+              {isImageValid ? (
                 <img
-                  src={report.image}
+                  src={activeImage}
                   alt={`Report ${report.id}`}
                   className="h-full w-full object-contain"
+                  onError={(e) => {
+                    e.currentTarget.style.display = "none";
+                  }}
                 />
               ) : (
                 <div className="text-center p-6 text-muted-foreground">

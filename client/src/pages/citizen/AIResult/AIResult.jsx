@@ -142,6 +142,18 @@ export default function AIResult() {
       setIsSending(true);
       toast.info("Dispatching inspection report to PHI officer...");
 
+      const primaryImg =
+        prediction?.annotatedImage ||
+        prediction?.originalImage ||
+        prediction?.image ||
+        "";
+
+      const allImages = [
+        prediction?.annotatedImage,
+        prediction?.originalImage,
+        prediction?.image,
+      ].filter((img) => Boolean(img) && !img.startsWith("blob:"));
+
       const payload = {
         location: reportLocation,
         address: reportLocation,
@@ -152,8 +164,8 @@ export default function AIResult() {
         lat: state.coords?.lat || prediction?.latitude || 6.8712,
         lng: state.coords?.lon || prediction?.longitude || 79.8890,
         risk: rfRiskLevel,
-        image: prediction?.originalImage || prediction?.annotatedImage || originalPreview,
-        images: [prediction?.originalImage || prediction?.annotatedImage || originalPreview].filter(Boolean),
+        image: primaryImg,
+        images: allImages.length > 0 ? allImages : [primaryImg].filter(Boolean),
         rfRiskScore: rfRiskScore,
         confidence: confidence,
         detectedObjects: detectedObjects,
