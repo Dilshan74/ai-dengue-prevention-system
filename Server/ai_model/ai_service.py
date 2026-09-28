@@ -261,4 +261,4 @@ async def predict(
 if __name__ == "__main__":
     port = int(os.environ.get("AI_PORT", 5001))
     print(f"[AI Service] Starting server on http://127.0.0.1:{port} ...")
-    uvicorn.run("ai_service:app", host="127.0.0.1", port=port, reload=True)
+    uvicorn.run(app, host="127.0.0.1", port=port)

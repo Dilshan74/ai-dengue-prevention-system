@@ -74,32 +74,50 @@ export default function LocationPicker({ value, onChange, className }) {
 
   const center = value ?? SRI_LANKA;
   const zoom = value ? 15 : 8;
+  const hasGoogleKey = Boolean(
+    import.meta.env.VITE_GOOGLE_MAPS_API_KEY &&
+    import.meta.env.VITE_GOOGLE_MAPS_API_KEY !== "undefined" &&
+    import.meta.env.VITE_GOOGLE_MAPS_API_KEY.length > 5
+  );
 
   return (
     <div className={cn("space-y-3", className)}>
       {/* Map */}
       <div className="map-container h-56 overflow-hidden rounded-xl border border-border">
-        <Map
-          defaultCenter={center}
-          center={center}
-          zoom={zoom}
-          mapId="DEMO_MAP_ID"
-          gestureHandling="cooperative"
-          disableDefaultUI
-          zoomControl
-          onClick={handleMapClick}
-          style={{ width: "100%", height: "100%" }}
-        >
-          {value && (
-            <AdvancedMarker position={value}>
-              <Pin
-                background="#0d9488"
-                borderColor="#0f766e"
-                glyphColor="#fff"
-              />
-            </AdvancedMarker>
-          )}
-        </Map>
+        {hasGoogleKey ? (
+          <Map
+            defaultCenter={center}
+            center={center}
+            zoom={zoom}
+            mapId="DEMO_MAP_ID"
+            gestureHandling="cooperative"
+            disableDefaultUI
+            zoomControl
+            onClick={handleMapClick}
+            style={{ width: "100%", height: "100%" }}
+          >
+            {value && (
+              <AdvancedMarker position={value}>
+                <Pin
+                  background="#0d9488"
+                  borderColor="#0f766e"
+                  glyphColor="#fff"
+                />
+              </AdvancedMarker>
+            )}
+          </Map>
+        ) : (
+          <div className="relative w-full h-full">
+            <iframe
+              title="OpenStreetMap Location"
+              width="100%"
+              height="100%"
+              style={{ border: 0 }}
+              src={`https://www.openstreetmap.org/export/embed.html?bbox=${center.lng - 0.015}%2C${center.lat - 0.01}%2C${center.lng + 0.015}%2C${center.lat + 0.01}&layer=mapnik&marker=${center.lat}%2C${center.lng}`}
+              className="w-full h-full"
+            />
+          </div>
+        )}
       </div>
 
       {/* Use My Current Location button */}
