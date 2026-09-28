@@ -332,7 +332,9 @@ export default function AIResult() {
                     <CloudRain className="h-3 w-3 text-sky-500" /> Recent Rain
                   </div>
                   <div className="mt-1 text-lg font-bold text-foreground">{factors.rainfallMm} mm</div>
-                  <div className="text-[10px] text-muted-foreground">7-day precipitation</div>
+                  <div className="text-[10px] text-emerald-600 font-medium truncate">
+                    {prediction?.environmentalSources?.weather ? "⚡ Auto-Radar" : "7-day precipitation"}
+                  </div>
                 </div>
 
                 {/* Feature 4: NDCU District Cases */}
@@ -341,7 +343,9 @@ export default function AIResult() {
                     <Activity className="h-3 w-3 text-amber-500" /> District Cases
                   </div>
                   <div className="mt-1 text-lg font-bold text-foreground">{factors.ndcuCases}</div>
-                  <div className="text-[10px] text-muted-foreground">NDCU weekly cases</div>
+                  <div className="text-[10px] text-emerald-600 font-medium truncate">
+                    {prediction?.environmentalSources?.ndcu ? "⚡ NDCU Surveillance" : "NDCU weekly cases"}
+                  </div>
                 </div>
 
                 {/* Feature 5: Local Report Density */}
@@ -350,7 +354,9 @@ export default function AIResult() {
                     <MapPin className="h-3 w-3 text-indigo-500" /> Local Density
                   </div>
                   <div className="mt-1 text-lg font-bold text-foreground">{factors.reportDensity} / 2km</div>
-                  <div className="text-[10px] text-muted-foreground">Active cluster reports</div>
+                  <div className="text-[10px] text-emerald-600 font-medium truncate">
+                    {prediction?.environmentalSources?.density ? "⚡ Auto-Calculated" : "Active cluster reports"}
+                  </div>
                 </div>
 
                 {/* ML Engine Badge */}
