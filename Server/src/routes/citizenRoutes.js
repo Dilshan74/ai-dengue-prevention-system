@@ -5,7 +5,7 @@ import { upload } from "../middleware/upload.js";
 
 const router = Router();
 
-router.use(verifyAuth, requireRole("citizen"));
+router.use(verifyAuth);
 
 router.get("/dashboard", citizenController.dashboard);
 router.get("/complaints", citizenController.listComplaints);
