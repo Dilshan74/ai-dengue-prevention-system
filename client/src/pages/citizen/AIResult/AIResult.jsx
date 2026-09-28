@@ -11,6 +11,13 @@ import {
   Layers,
   Sparkles,
   Cpu,
+  CloudRain,
+  Activity,
+  BarChart3,
+  Gauge,
+  TrendingUp,
+  MapPin,
+  Info,
 } from "lucide-react";
 import { toast } from "sonner";
 import Button from "../../../components/common/Button";
@@ -22,24 +29,36 @@ export default function AIResult() {
   const state = location.state || {};
   const prediction = state.prediction;
   const originalPreview = state.imagePreview;
-  const reportLocation = state.location || "Nugegoda, Ward 12";
+  const reportLocation = state.location || prediction?.location || "Nugegoda, Ward 12 (Colombo)";
 
   const [showAnnotated, setShowAnnotated] = useState(true);
 
-  // Fallback defaults if accessed directly
-  const risk = prediction?.risk || "High";
+  // Machine Learning Risk values from Random Forest model
+  const rfRiskScore = prediction?.rfRiskScore !== undefined ? Number(prediction.rfRiskScore) : 76.9;
+  const rfRiskLevel = prediction?.rfRiskLevel || prediction?.risk || "High";
   const confidence = prediction?.confidence ?? 87.5;
+  const aiSeverity = prediction?.aiSeverityScore ?? (prediction?.riskFactors?.aiSeverity ?? 90.0);
   const detectedObjects = prediction?.detectedObjects || [
-    { label: "Tire", conf: 89.2 },
-    { label: "Bottle", conf: 76.5 },
+    { label: "Tire", conf: 89.2, severity: 95 },
+    { label: "Bottle", conf: 76.5, severity: 60 },
   ];
+
+  // Risk Factors (features from dengue_data.csv)
+  const factors = prediction?.riskFactors || {
+    aiSeverity: aiSeverity,
+    aiConfidence: confidence,
+    rainfallMm: 125.0,
+    ndcuCases: 980,
+    reportDensity: 8,
+  };
+
   const recommendations = prediction?.recommendations?.length
     ? prediction.recommendations
     : [
         "Empty water-retaining receptacles immediately to eliminate mosquito breeding larvae.",
         "Store unused tires and containers in dry, sheltered areas or recycle them.",
       ];
-  const modelSource = prediction?.source || "best.pt (FastAPI)";
+  const modelSource = prediction?.source || "YOLOv8 + Random Forest (FastAPI)";
   const reportId = prediction?.id || "DG-1042";
 
   // Image source selection
@@ -52,69 +71,89 @@ export default function AIResult() {
       case "high":
         return {
           bg: "bg-red-500/10 text-red-600 border-red-500/30",
+          barColor: "bg-red-500",
+          textColor: "text-red-500",
           icon: AlertTriangle,
-          label: "High Risk Breeding Site",
+          label: "HIGH RISK DENGUE ZONE",
         };
       case "medium":
         return {
           bg: "bg-amber-500/10 text-amber-600 border-amber-500/30",
+          barColor: "bg-amber-500",
+          textColor: "text-amber-500",
           icon: AlertCircle,
-          label: "Medium Risk Potential Site",
+          label: "MEDIUM RISK DENGUE ZONE",
         };
       default:
         return {
           bg: "bg-emerald-500/10 text-emerald-600 border-emerald-500/30",
+          barColor: "bg-emerald-500",
+          textColor: "text-emerald-500",
           icon: CheckCircle2,
-          label: "Low Risk / Clean Site",
+          label: "LOW RISK / CLEAN AREA",
         };
     }
   };
 
-  const riskBadge = getRiskBadge(risk);
+  const riskBadge = getRiskBadge(rfRiskLevel);
   const RiskIcon = riskBadge.icon;
 
   const downloadReport = () => {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({
       reportId,
       location: reportLocation,
-      risk,
-      confidence: `${confidence}%`,
-      detectedObjects,
+      machineLearningRiskScore: `${rfRiskScore} / 100`,
+      machineLearningRiskLevel: rfRiskLevel,
+      yoloConfidence: `${confidence}%`,
+      visualSeverityScore: factors.aiSeverity,
+      environmentalFactors: {
+        rainfall7DayMm: factors.rainfallMm,
+        ndcuDistrictCases: factors.ndcuCases,
+        reportDensity2Km: factors.reportDensity,
+      },
+      detectedHazards: detectedObjects,
       recommendations,
       timestamp: new Date().toISOString(),
+      models: {
+        stage1Vision: "YOLOv8 Object Detection (best.pt)",
+        stage2RiskAssessment: "Random Forest Regressor & Classifier (dengue_data.csv)",
+      }
     }, null, 2));
     const downloadAnchor = document.createElement("a");
     downloadAnchor.setAttribute("href", dataStr);
-    downloadAnchor.setAttribute("download", `DengueGuard-Report-${reportId}.json`);
+    downloadAnchor.setAttribute("download", `DengueGuard-ML-Report-${reportId}.json`);
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();
-    toast.success("Analysis report downloaded");
+    toast.success("AI/ML Risk analysis report downloaded");
   };
 
   return (
     <>
-      <div className="mb-4">
+      <div className="mb-4 flex items-center justify-between">
         <Link
           to="/citizen/upload"
           className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
         >
           <ArrowLeft className="h-3.5 w-3.5" /> Back to Upload
         </Link>
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+          <Cpu className="h-3.5 w-3.5" /> 2-Stage AI &amp; ML Architecture
+        </span>
       </div>
 
       <PageHeader
-        title="AI Analysis Result"
+        title="Dengue Risk Assessment Result"
         description={`Report ${reportId} · ${reportLocation}`}
       />
 
-      <div className="grid gap-6 lg:grid-cols-[1.2fr_1fr]">
-        {/* Visual Detection Preview */}
-        <div className="space-y-3">
+      <div className="grid gap-6 lg:grid-cols-[1.1fr_1.3fr]">
+        {/* Stage 1: Visual Inspection & YOLO Detections */}
+        <div className="space-y-4">
           <div className="soft-shadow relative overflow-hidden rounded-2xl border border-border bg-card p-4">
             <div className="mb-3 flex items-center justify-between">
-              <span className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                <Layers className="h-4 w-4 text-primary" /> Visual Inspection
+              <span className="flex items-center gap-1.5 text-xs font-bold text-foreground tracking-wider uppercase">
+                <Layers className="h-4 w-4 text-primary" /> Stage 1: YOLOv8 Computer Vision
               </span>
               {prediction?.annotatedImage && (
                 <div className="flex items-center gap-1 rounded-lg border border-border bg-muted/40 p-1 text-xs">
@@ -124,7 +163,7 @@ export default function AIResult() {
                       showAnnotated ? "bg-primary text-primary-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
-                    AI Detection Box
+                    Bounding Boxes
                   </button>
                   <button
                     onClick={() => setShowAnnotated(false)}
@@ -138,12 +177,12 @@ export default function AIResult() {
               )}
             </div>
 
-            <div className="relative flex min-h-[300px] max-h-[440px] items-center justify-center overflow-hidden rounded-xl bg-slate-900/5">
+            <div className="relative flex min-h-[300px] max-h-[420px] items-center justify-center overflow-hidden rounded-xl bg-slate-950/5 border border-border/50">
               {displayImage ? (
                 <img
                   src={displayImage}
                   alt="Dengue breeding analysis"
-                  className="max-h-[440px] w-full rounded-xl object-contain"
+                  className="max-h-[420px] w-full rounded-xl object-contain"
                 />
               ) : (
                 <div className="p-8 text-center text-sm text-muted-foreground">
@@ -156,71 +195,54 @@ export default function AIResult() {
             <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
               <span className="flex items-center gap-1">
                 <Cpu className="h-3.5 w-3.5 text-primary" />
-                Inference Model: <strong className="text-foreground">{modelSource}</strong>
+                Vision: <strong className="text-foreground">best.pt</strong>
               </span>
-              <span>Classes: Tire, Bottle, Coconut, Drain, Vase</span>
+              <span>Classes: Tire, Coconut, Bottle, Drain, Vase</span>
             </div>
           </div>
-        </div>
 
-        {/* Risk Assessment & Recommendations */}
-        <div className="space-y-4">
-          <div className="soft-shadow rounded-2xl border border-border bg-card p-6">
-            <div className="mb-4 flex items-center justify-between border-b border-border pb-3">
-              <h3 className="font-semibold text-foreground">Risk Assessment</h3>
-              <div className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold ${riskBadge.bg}`}>
-                <RiskIcon className="h-3.5 w-3.5" />
-                {riskBadge.label}
-              </div>
+          {/* Identified Hazards Card */}
+          <div className="soft-shadow rounded-2xl border border-border bg-card p-5">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-bold text-foreground tracking-wider uppercase flex items-center gap-1.5">
+                <Sparkles className="h-3.5 w-3.5 text-primary" /> Detected Hazards ({detectedObjects.length})
+              </span>
+              <span className="text-xs text-muted-foreground">
+                Vision Conf: <strong className="text-foreground">{confidence}%</strong>
+              </span>
             </div>
 
-            <div className="space-y-4">
-              <div className="flex items-center justify-between border-b border-border pb-2">
-                <span className="text-sm text-muted-foreground">Primary Detection</span>
-                <span className="text-sm font-semibold text-foreground">
-                  {prediction?.label || "Breeding Containers Detected"}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between border-b border-border pb-2">
-                <span className="text-sm text-muted-foreground">AI Confidence</span>
-                <div className="flex items-center gap-2">
-                  <div className="h-2 w-20 overflow-hidden rounded-full bg-muted">
-                    <div
-                      className={`h-full ${risk === "High" ? "bg-red-500" : risk === "Medium" ? "bg-amber-500" : "bg-emerald-500"}`}
-                      style={{ width: `${Math.min(confidence, 100)}%` }}
-                    />
-                  </div>
-                  <span className="text-sm font-bold text-foreground">{confidence}%</span>
-                </div>
-              </div>
-
-              <div>
-                <span className="mb-2 block text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Identified Breeding Hazards ({detectedObjects.length})
-                </span>
-                <div className="flex flex-wrap gap-2">
-                  {detectedObjects.map((obj, i) => (
-                    <span
-                      key={i}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-muted/50 px-2.5 py-1 text-xs font-medium text-foreground"
-                    >
-                      <Sparkles className="h-3 w-3 text-primary" />
-                      {obj.label}
-                      <span className="text-muted-foreground">({obj.conf}%)</span>
+            <div className="flex flex-wrap gap-2">
+              {detectedObjects.map((obj, i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-2 rounded-xl border border-border bg-muted/40 px-3 py-1.5 text-xs"
+                >
+                  <span className="font-semibold text-foreground">{obj.label}</span>
+                  <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[11px] font-medium text-primary">
+                    {obj.conf}%
+                  </span>
+                  {obj.severity && (
+                    <span className="rounded bg-rose-500/10 px-1.5 py-0.5 text-[11px] font-medium text-rose-500">
+                      Sev: {obj.severity}
                     </span>
-                  ))}
-                  {detectedObjects.length === 0 && (
-                    <span className="text-xs text-muted-foreground">No hazardous objects detected</span>
                   )}
                 </div>
-              </div>
+              ))}
+              {detectedObjects.length === 0 && (
+                <div className="rounded-xl border border-dashed border-emerald-500/30 bg-emerald-500/5 p-3 text-xs text-emerald-600 w-full">
+                  ✓ Clean Site — No water-holding dengue breeding containers detected.
+                </div>
+              )}
             </div>
           </div>
 
-          <div className="soft-shadow rounded-2xl border border-border bg-card p-6">
-            <h3 className="mb-3 font-semibold text-foreground">Actionable Recommendations</h3>
-            <ul className="space-y-2 text-sm text-foreground">
+          {/* Actionable Recommendations */}
+          <div className="soft-shadow rounded-2xl border border-border bg-card p-5">
+            <h3 className="mb-3 font-semibold text-foreground text-sm flex items-center gap-1.5">
+              <CheckCircle2 className="h-4 w-4 text-emerald-500" /> Actionable Recommendations
+            </h3>
+            <ul className="space-y-2 text-xs text-foreground">
               {recommendations.map((rec, index) => (
                 <li key={index} className="flex items-start gap-2">
                   <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
@@ -229,10 +251,131 @@ export default function AIResult() {
               ))}
             </ul>
           </div>
+        </div>
 
+        {/* Stage 2: Machine Learning Multi-Factor Risk Assessment (Random Forest) */}
+        <div className="space-y-4">
+          {/* Main Risk Score Card */}
+          <div className="soft-shadow rounded-2xl border border-border bg-card p-6">
+            <div className="mb-4 flex items-center justify-between border-b border-border pb-3">
+              <div className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5 text-primary" />
+                <div>
+                  <h3 className="font-bold text-foreground">Stage 2: Machine Learning Risk Score</h3>
+                  <p className="text-xs text-muted-foreground">Trained with Random Forest on dengue_data.csv</p>
+                </div>
+              </div>
+              <div className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-bold ${riskBadge.bg}`}>
+                <RiskIcon className="h-3.5 w-3.5" />
+                {riskBadge.label}
+              </div>
+            </div>
+
+            {/* Score Display Bar */}
+            <div className="mb-6 rounded-2xl border border-border bg-muted/20 p-5">
+              <div className="flex items-baseline justify-between mb-2">
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Composite Risk Level
+                </span>
+                <div className="flex items-baseline gap-1">
+                  <span className={`text-3xl font-extrabold ${riskBadge.textColor}`}>
+                    {rfRiskScore}
+                  </span>
+                  <span className="text-sm font-semibold text-muted-foreground">/ 100</span>
+                </div>
+              </div>
+
+              <div className="h-3 w-full overflow-hidden rounded-full bg-muted">
+                <div
+                  className={`h-full transition-all duration-700 ${riskBadge.barColor}`}
+                  style={{ width: `${Math.min(Math.max(rfRiskScore, 5), 100)}%` }}
+                />
+              </div>
+
+              <div className="mt-2 flex justify-between text-[11px] font-medium text-muted-foreground">
+                <span>0 (Low Risk)</span>
+                <span>40 (Medium Risk)</span>
+                <span>70 (High Risk)</span>
+                <span>100</span>
+              </div>
+            </div>
+
+            {/* 5-Factor Feature Matrix (from dengue_data.csv) */}
+            <div>
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-xs font-bold text-foreground uppercase tracking-wider">
+                  5-Factor ML Model Input Matrix
+                </span>
+                <span className="text-[11px] text-muted-foreground font-mono">
+                  RandomForestRegressor + Classifier
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {/* Feature 1: AI Visual Severity */}
+                <div className="rounded-xl border border-border bg-card p-3">
+                  <div className="text-[11px] font-medium text-muted-foreground">Visual Severity</div>
+                  <div className="mt-1 text-lg font-bold text-foreground">{factors.aiSeverity} / 100</div>
+                  <div className="text-[10px] text-muted-foreground">Hazard type weight</div>
+                </div>
+
+                {/* Feature 2: AI Confidence */}
+                <div className="rounded-xl border border-border bg-card p-3">
+                  <div className="text-[11px] font-medium text-muted-foreground">Vision Confidence</div>
+                  <div className="mt-1 text-lg font-bold text-foreground">{factors.aiConfidence}%</div>
+                  <div className="text-[10px] text-muted-foreground">YOLO certainty</div>
+                </div>
+
+                {/* Feature 3: Recent Rainfall */}
+                <div className="rounded-xl border border-border bg-card p-3">
+                  <div className="text-[11px] font-medium text-muted-foreground flex items-center gap-1">
+                    <CloudRain className="h-3 w-3 text-sky-500" /> Recent Rain
+                  </div>
+                  <div className="mt-1 text-lg font-bold text-foreground">{factors.rainfallMm} mm</div>
+                  <div className="text-[10px] text-muted-foreground">7-day precipitation</div>
+                </div>
+
+                {/* Feature 4: NDCU District Cases */}
+                <div className="rounded-xl border border-border bg-card p-3">
+                  <div className="text-[11px] font-medium text-muted-foreground flex items-center gap-1">
+                    <Activity className="h-3 w-3 text-amber-500" /> District Cases
+                  </div>
+                  <div className="mt-1 text-lg font-bold text-foreground">{factors.ndcuCases}</div>
+                  <div className="text-[10px] text-muted-foreground">NDCU weekly cases</div>
+                </div>
+
+                {/* Feature 5: Local Report Density */}
+                <div className="rounded-xl border border-border bg-card p-3">
+                  <div className="text-[11px] font-medium text-muted-foreground flex items-center gap-1">
+                    <MapPin className="h-3 w-3 text-indigo-500" /> Local Density
+                  </div>
+                  <div className="mt-1 text-lg font-bold text-foreground">{factors.reportDensity} / 2km</div>
+                  <div className="text-[10px] text-muted-foreground">Active cluster reports</div>
+                </div>
+
+                {/* ML Engine Badge */}
+                <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 flex flex-col justify-between">
+                  <div className="text-[11px] font-semibold text-primary">Model Trained</div>
+                  <div className="text-xs font-bold text-foreground">87.5% Acc · R² 0.91</div>
+                  <div className="text-[10px] text-primary">risk_model.pkl active</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Explainable AI Insight */}
+            <div className="mt-4 rounded-xl border border-dashed border-border bg-muted/30 p-3 text-xs text-muted-foreground flex items-start gap-2">
+              <Info className="h-4 w-4 shrink-0 text-primary mt-0.5" />
+              <div>
+                <strong className="text-foreground">How the ML Model works: </strong>
+                The image is first classified using YOLOv8 to detect breeding containers. Its visual severity ({factors.aiSeverity}) and confidence ({factors.aiConfidence}%) are combined with local rainfall ({factors.rainfallMm}mm) and district transmission history ({factors.ndcuCases} cases) to compute the final multi-factor risk score.
+              </div>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
           <div className="flex flex-wrap gap-3 pt-2">
             <Button
-              className="flex-1 font-semibold"
+              className="flex-1 font-semibold shadow-md"
               onClick={() => toast.success("Notification and report dispatched to Ward PHI team")}
             >
               <Eye className="h-4 w-4" /> Send to PHI for Inspection

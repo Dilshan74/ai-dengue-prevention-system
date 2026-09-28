@@ -22,11 +22,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+import joblib
+
 # Paths
 BASE_DIR = Path(__file__).resolve().parent
 SERVER_DIR = BASE_DIR.parent
 UPLOADS_DIR = SERVER_DIR / "uploads"
 MODEL_PATH = BASE_DIR / "best.pt"
+RF_MODEL_PATH = BASE_DIR / "risk_model.pkl"
 
 # Ensure uploads directory exists
 UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
@@ -35,9 +38,38 @@ UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 if not MODEL_PATH.exists():
     raise FileNotFoundError(f"Model file not found at: {MODEL_PATH}")
 
-print(f"[AI Service] Loading model from {MODEL_PATH}...")
+print(f"[AI Service] Loading YOLO model from {MODEL_PATH}...")
 model = YOLO(str(MODEL_PATH))
-print(f"[AI Service] Model loaded successfully! Classes: {model.names}")
+print(f"[AI Service] YOLO Model loaded successfully! Classes: {model.names}")
+
+# Load Random Forest Model dynamically
+_rf_cache = {"bundle": None, "mtime": 0}
+
+def get_rf_model():
+    if not RF_MODEL_PATH.exists():
+        return None
+    try:
+        mtime = RF_MODEL_PATH.stat().st_mtime
+        if _rf_cache["bundle"] is None or mtime != _rf_cache["mtime"]:
+            _rf_cache["bundle"] = joblib.load(RF_MODEL_PATH)
+            _rf_cache["mtime"] = mtime
+            print(f"[AI Service] Loaded/Reloaded Random Forest Risk Model from {RF_MODEL_PATH} (mtime={mtime})")
+        return _rf_cache["bundle"]
+    except Exception as e:
+        print(f"[AI Service] Could not load RF Model: {e}")
+        return _rf_cache["bundle"]
+
+# Pre-load on startup
+get_rf_model()
+
+# Severity scores per detected object
+CLASS_SEVERITIES = {
+    "Tire": 95.0,
+    "Coconut-Exocarp": 90.0,
+    "Drain-Inlet": 75.0,
+    "Vase": 70.0,
+    "Bottle": 60.0,
+}
 
 # Breeding site risk rules
 HIGH_RISK_CLASSES = {"Tire", "Coconut-Exocarp"}
@@ -53,19 +85,42 @@ RECOMMENDATIONS = {
 
 @app.get("/health")
 def health():
+    bundle = get_rf_model()
     return {
         "status": "online",
         "service": "DengueGuard AI Model",
-        "classes": model.names,
+        "yolo_classes": model.names,
+        "rf_model_loaded": bundle is not None,
+        "rf_classes": bundle["classes"] if bundle else [],
     }
+
+@app.post("/retrain")
+def retrain():
+    """
+    Retrains the Random Forest models on dengue_data.csv and reloads the active model.
+    """
+    try:
+        from train_rf import train_models
+        train_models()
+        bundle = get_rf_model()
+        return {
+            "status": "success",
+            "message": "Models successfully retrained and reloaded from dengue_data.csv",
+            "classes": bundle["classes"] if bundle else []
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Retraining failed: {str(e)}")
 
 @app.post("/predict")
 async def predict(
     file: Optional[UploadFile] = File(None),
     image_path: Optional[str] = Form(None),
+    rainfall_mm: float = Form(45.0),
+    ndcu_cases: int = Form(320),
+    report_density: int = Form(3),
 ):
     """
-    Runs YOLOv8 object detection on an uploaded image or an existing image on disk.
+    Runs YOLOv8 object detection on an image and predicts overall dengue risk score using Random Forest.
     """
     target_path = None
     filename = None
@@ -99,6 +154,7 @@ async def predict(
 
     detected_objects = []
     max_conf = 0.0
+    max_severity = 0.0
 
     if result.boxes is not None and len(result.boxes) > 0:
         for box in result.boxes:
@@ -107,9 +163,14 @@ async def predict(
             conf = float(box.conf[0].item()) * 100
             coords = [round(x, 1) for x in box.xyxy[0].tolist()]
 
+            severity = CLASS_SEVERITIES.get(class_name, 50.0)
+            if severity > max_severity:
+                max_severity = severity
+
             detected_objects.append({
                 "label": class_name,
                 "conf": round(conf, 1),
+                "severity": severity,
                 "bbox": coords
             })
 
@@ -132,29 +193,58 @@ async def predict(
             recommendations.append(RECOMMENDATIONS[label])
 
     if not detected_objects:
-        risk = "Low"
+        initial_risk = "Low"
         primary_label = "Clean / No Breeding Site Detected"
         max_conf = 95.0
+        max_severity = 0.0
         recommendations.append("No obvious dengue breeding sites detected. Keep surrounding areas clean and free of water-holding debris.")
     elif any(l in HIGH_RISK_CLASSES for l in labels_found) or len(detected_objects) >= 2:
-        risk = "High"
-        primary_label = f"High Risk: {', '.join(unique_labels)} detected"
+        initial_risk = "High"
+        primary_label = f"High Hazard: {', '.join(unique_labels)} detected"
     else:
-        risk = "Medium"
-        primary_label = f"Medium Risk: {', '.join(unique_labels)} detected"
+        initial_risk = "Medium"
+        primary_label = f"Medium Hazard: {', '.join(unique_labels)} detected"
+
+    # Multi-Factor Random Forest Risk Score Calculation
+    rf_score = None
+    rf_level = initial_risk
+
+    rf_bundle = get_rf_model()
+    if rf_bundle is not None:
+        try:
+            reg = rf_bundle["regressor"]
+            clf = rf_bundle["classifier"]
+            features = [[max_severity, max_conf, rainfall_mm, ndcu_cases, report_density]]
+            rf_score = round(float(reg.predict(features)[0]), 1)
+            rf_level = str(clf.predict(features)[0])
+        except Exception as err:
+            print(f"[AI Service] RF prediction error: {err}")
+
+    # Synchronize final composite risk level with the ML model
+    final_risk = rf_level if rf_score is not None else initial_risk
 
     return {
         "label": primary_label,
-        "risk": risk,
+        "risk": final_risk,
+        "rfRiskScore": rf_score if rf_score is not None else (85.0 if final_risk == "High" else 55.0 if final_risk == "Medium" else 20.0),
+        "rfRiskLevel": rf_level,
         "confidence": round(max_conf, 1),
+        "aiSeverityScore": max_severity,
         "detectedObjects": detected_objects,
         "annotatedImage": f"/uploads/{annotated_filename}",
         "originalImage": f"/uploads/{filename}",
         "recommendations": recommendations,
         "totalDetected": len(detected_objects),
+        "riskFactors": {
+            "aiSeverity": max_severity,
+            "aiConfidence": round(max_conf, 1),
+            "rainfallMm": rainfall_mm,
+            "ndcuCases": ndcu_cases,
+            "reportDensity": report_density,
+        }
     }
 
 if __name__ == "__main__":
     port = int(os.environ.get("AI_PORT", 5001))
     print(f"[AI Service] Starting server on http://127.0.0.1:{port} ...")
-    uvicorn.run(app, host="127.0.0.1", port=port)
+    uvicorn.run("ai_service:app", host="127.0.0.1", port=port, reload=True)
