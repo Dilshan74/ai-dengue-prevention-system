@@ -2,7 +2,6 @@ import axios from "axios";
 import { env } from "../config/env.js";
 import { predictionsStore, reportsStore } from "../data/stores.js";
 import { asyncHandler, nextId, ApiError } from "../utils/helpers.js";
-import { classifyImage } from "../utils/aiSimulator.js";
 import { uploadUrl } from "../middleware/upload.js";
 
 const DISTRICT_REGIONS = {
@@ -104,30 +103,12 @@ async function getAiPrediction(file, meta = {}) {
       };
     }
   } catch (error) {
-    console.warn(`[AI Controller] AI service at ${env.aiServiceUrl} unavailable (${error.message}). Using fallback simulator.`);
+    console.error(`[AI Controller] AI service at ${env.aiServiceUrl} error:`, error.message);
+    throw new ApiError(
+      503,
+      `AI Service is currently offline (${env.aiServiceUrl}). Please start the Python AI service (python ai_service.py) to analyze images.`
+    );
   }
-
-  // Graceful fallback to simulator if Python service is offline
-  const sim = classifyImage();
-  return {
-    ...sim,
-    rfRiskScore: sim.risk === "High" ? 82.5 : sim.risk === "Medium" ? 58.0 : 25.0,
-    rfRiskLevel: sim.risk,
-    riskFactors: {
-      aiSeverity: sim.risk === "High" ? 90.0 : sim.risk === "Medium" ? 65.0 : 0.0,
-      aiConfidence: sim.confidence,
-      rainfallMm: rainfall,
-      ndcuCases: cases,
-      reportDensity: density,
-    },
-    source: "Simulator Fallback",
-    districtContext: profile.district,
-    environmentalSources: {
-      weather: weatherSource,
-      ndcu: "National Dengue Control Unit (NDCU) District Surveillance",
-      density: "Active Reports in 2km Neighborhood Radius",
-    },
-  };
 }
 
 export const predict = asyncHandler(async (req, res) => {

@@ -31,43 +31,66 @@ export default function AIResult() {
   const state = location.state || {};
   const prediction = state.prediction;
   const originalPreview = state.imagePreview;
-  const reportLocation = state.location || prediction?.location || "Nugegoda, Ward 12 (Colombo)";
 
   const [showAnnotated, setShowAnnotated] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [dispatchedReport, setDispatchedReport] = useState(null);
 
+  if (!prediction) {
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          title="Dengue Risk Assessment Result"
+          description="View AI object detection and ML risk assessment results"
+        />
+        <div className="flex min-h-[380px] flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card p-8 text-center">
+          <div className="mb-4 rounded-full bg-primary/10 p-4 text-primary">
+            <Sparkles className="h-8 w-8" />
+          </div>
+          <h2 className="mb-2 text-lg font-bold text-foreground">No AI Analysis Available</h2>
+          <p className="mb-6 max-w-md text-sm text-muted-foreground">
+            Please upload a photo of a suspected mosquito breeding site to run YOLOv8 object detection and Random Forest risk scoring.
+          </p>
+          <Link to="/citizen/upload">
+            <Button>
+              <ArrowLeft className="mr-2 h-4 w-4" /> Go to Upload Image
+            </Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const reportLocation = state.location || prediction.location || "Location not specified";
+
   // Machine Learning Risk values from Random Forest model
-  const rfRiskScore = prediction?.rfRiskScore !== undefined ? Number(prediction.rfRiskScore) : 76.9;
-  const rfRiskLevel = prediction?.rfRiskLevel || prediction?.risk || "High";
-  const confidence = prediction?.confidence ?? 87.5;
-  const aiSeverity = prediction?.aiSeverityScore ?? (prediction?.riskFactors?.aiSeverity ?? 90.0);
-  const detectedObjects = prediction?.detectedObjects || [
-    { label: "Tire", conf: 89.2, severity: 95 },
-    { label: "Bottle", conf: 76.5, severity: 60 },
-  ];
+  const rfRiskScore = prediction.rfRiskScore !== undefined ? Number(prediction.rfRiskScore) : 0;
+  const rfRiskLevel = prediction.rfRiskLevel || prediction.risk || "Low";
+  const confidence = prediction.confidence ?? 0;
+  const aiSeverity = prediction.aiSeverityScore ?? (prediction.riskFactors?.aiSeverity ?? 0);
+  const detectedObjects = prediction.detectedObjects || [];
 
   // Risk Factors (features from dengue_data.csv)
-  const factors = prediction?.riskFactors || {
+  const factors = prediction.riskFactors || {
     aiSeverity: aiSeverity,
     aiConfidence: confidence,
-    rainfallMm: 125.0,
-    ndcuCases: 980,
-    reportDensity: 8,
+    rainfallMm: 0,
+    ndcuCases: 0,
+    reportDensity: 0,
   };
 
-  const recommendations = prediction?.recommendations?.length
+  const recommendations = prediction.recommendations?.length
     ? prediction.recommendations
     : [
         "Empty water-retaining receptacles immediately to eliminate mosquito breeding larvae.",
         "Store unused tires and containers in dry, sheltered areas or recycle them.",
       ];
-  const modelSource = prediction?.source || "YOLOv8 + Random Forest (FastAPI)";
-  const reportId = prediction?.id || "DG-1042";
+  const modelSource = prediction.source || "YOLOv8 + Random Forest (FastAPI)";
+  const reportId = prediction.id || "N/A";
 
   // Image source selection
-  const annotatedSrc = prediction?.annotatedImage || originalPreview;
-  const rawSrc = prediction?.originalImage || originalPreview;
+  const annotatedSrc = prediction.annotatedImage || originalPreview;
+  const rawSrc = prediction.originalImage || originalPreview;
   const displayImage = showAnnotated && annotatedSrc ? annotatedSrc : (rawSrc || originalPreview);
 
   const getRiskBadge = (level) => {
