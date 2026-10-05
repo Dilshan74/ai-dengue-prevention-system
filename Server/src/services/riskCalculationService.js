@@ -1,9 +1,10 @@
 /**
  * Calculates dengue risk level based on current and previous case counts.
  * 
- * Rules:
- * - 0-30   : LOW
- * - 31-60  : MEDIUM
+ * Risk-score bands:
+ * - 0-20   : MINIMAL
+ * - 21-40  : LOW
+ * - 41-60  : MODERATE
  * - 61-80  : HIGH
  * - 81-100 : CRITICAL
  */
