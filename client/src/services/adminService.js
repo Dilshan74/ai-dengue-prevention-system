@@ -2,6 +2,7 @@ import { request } from "./api";
 
 export const adminService = {
   dashboard: () => request({ url: "/admin/dashboard" }),
+  systemHealth: () => request({ url: "/admin/system-health" }),
   users: (params) => request({ url: "/admin/users", params }),
   createUser: (payload) =>
     request({ url: "/admin/users", method: "post", data: payload }),
@@ -51,4 +52,3 @@ export const adminService = {
 };
 
 export default adminService;
-

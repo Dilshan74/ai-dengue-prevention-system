@@ -7,6 +7,7 @@ const router = Router();
 router.use(verifyAuth, requireRole("admin"));
 
 router.get("/dashboard", adminController.dashboard);
+router.get("/system-health", adminController.systemHealth);
 
 router.get("/users", adminController.listUsers);
 router.post("/users", adminController.createUser);
@@ -39,4 +40,3 @@ router.patch("/notifications/:id/read", adminController.markNotificationRead);
 router.delete("/notifications/:id", adminController.deleteNotification);
 
 export default router;
-

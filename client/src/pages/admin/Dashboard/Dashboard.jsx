@@ -1,8 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Activity,
   AlertTriangle,
-  Brain,
   CheckCircle2,
   FileText,
   UserCog,
@@ -13,20 +12,15 @@ import StatCard from "../../../components/common/StatCard";
 import Card from "../../../components/common/Card";
 import DengueHotspotMap from "../../../components/maps/DengueHotspotMap";
 import adminService from "../../../services/adminService";
-import { cn } from "../../../utils/helpers";
-
-const SYSTEM_HEALTH = [
-  ["API Status", "Operational", "text-green-700"],
-  ["AI Model", "Online", "text-green-700"],
-  ["Storage Space", "62% used", "text-amber-700"],
-  ["Pending Tasks", "12", "text-teal-700"],
-];
 
 export default function Dashboard() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [dashboardError, setDashboardError] = useState("");
   const [activity, setActivity] = useState([]);
   const [highRiskCount, setHighRiskCount] = useState(0);
+  const [systemHealth, setSystemHealth] = useState(null);
+  const [healthLoading, setHealthLoading] = useState(true);
 
   useEffect(() => {
     adminService
@@ -35,8 +29,20 @@ export default function Dashboard() {
         if (data?.stats) setStats(data.stats);
         if (data?.recentReports) setActivity(data.recentReports);
       })
-      .catch(() => {})
+      .catch((error) => {
+        console.error("Failed to load admin dashboard:", error);
+        setDashboardError("Dashboard metrics could not be loaded. Please try again later.");
+      })
       .finally(() => setLoading(false));
+
+    adminService
+      .systemHealth()
+      .then(setSystemHealth)
+      .catch((error) => {
+        console.error("Failed to load system health:", error);
+        setSystemHealth(null);
+      })
+      .finally(() => setHealthLoading(false));
   }, []);
 
   const handleRiskDataLoaded = (data) => {
@@ -60,41 +66,46 @@ export default function Dashboard() {
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <StatCard
           label="Total Users"
-          value={loading ? "—" : s.totalUsers.toLocaleString()}
+          value={loading || dashboardError ? "—" : s.totalUsers.toLocaleString()}
           icon={Users}
           tint="primary"
         />
         <StatCard
           label="Active PHIs"
-          value={loading ? "—" : s.totalPhis}
+          value={loading || dashboardError ? "—" : s.totalPhis}
           icon={UserCog}
           tint="primary"
         />
         <StatCard
           label="Total Reports"
-          value={loading ? "—" : s.totalReports.toLocaleString()}
+          value={loading || dashboardError ? "—" : s.totalReports.toLocaleString()}
           icon={FileText}
           tint="primary"
         />
         <StatCard
           label="High Risk Areas"
-          value={loading ? "—" : highRiskCount}
+          value={loading || dashboardError ? "—" : highRiskCount}
           icon={AlertTriangle}
           tint="destructive"
         />
         <StatCard
           label="Resolved Cases"
-          value={loading ? "—" : s.resolvedReports.toLocaleString()}
+          value={loading || dashboardError ? "—" : s.resolvedReports.toLocaleString()}
           icon={CheckCircle2}
           tint="success"
         />
         <StatCard
           label="Pending Review"
-          value={loading ? "—" : s.pendingReports}
+          value={loading || dashboardError ? "—" : s.pendingReports}
           icon={Activity}
           tint="warning"
         />
       </div>
+      {dashboardError && (
+        <p role="alert" className="mt-3 text-sm text-destructive">
+          {dashboardError}
+        </p>
+      )}
 
       {/* Dengue Monitoring Map */}
       <Card
@@ -108,7 +119,30 @@ export default function Dashboard() {
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <Card title="System Health">
           <div className="space-y-4 text-sm">
-            {SYSTEM_HEALTH.map(([label, value, tint]) => (
+            {[
+              ["API", systemHealth?.api],
+              ["Database", systemHealth?.database],
+              [
+                "AI Model",
+                systemHealth?.aiModel?.status === "online" &&
+                systemHealth.aiModel.riskModelLoaded === false
+                  ? "degraded"
+                  : systemHealth?.aiModel?.status,
+              ],
+            ].map(([label, status]) => {
+              const value = healthLoading
+                ? "Checking…"
+                : status
+                  ? status[0].toUpperCase() + status.slice(1)
+                  : "Unavailable";
+              const tint =
+                status === "online"
+                  ? "text-green-700"
+                  : status === "degraded"
+                    ? "text-amber-700"
+                    : "text-red-700";
+
+              return (
               <div
                 key={label}
                 className="flex items-center justify-between border-b border-border pb-2 last:border-0 last:pb-0"
@@ -116,7 +150,13 @@ export default function Dashboard() {
                 <span className="text-muted-foreground">{label}</span>
                 <span className={`font-medium ${tint}`}>{value}</span>
               </div>
-            ))}
+              );
+            })}
+            {systemHealth?.aiModel?.riskModelLoaded === false && (
+              <p className="text-xs text-amber-700">
+                The AI service is online, but its risk model is not loaded.
+              </p>
+            )}
           </div>
         </Card>
 
@@ -130,9 +170,9 @@ export default function Dashboard() {
                 </li>
               ))
             ) : (
-              <>
-                <li className="flex gap-2"><span className="text-border">•</span> System is operational</li>
-              </>
+              <li className="text-muted-foreground">
+                {loading ? "Loading recent reports…" : dashboardError ? "Recent activity is unavailable." : "No recent reports."}
+              </li>
             )}
           </ul>
         </Card>
