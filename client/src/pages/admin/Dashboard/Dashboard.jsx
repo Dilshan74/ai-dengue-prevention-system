@@ -10,7 +10,7 @@ import {
 import PageHeader from "../../../components/common/PageHeader";
 import StatCard from "../../../components/common/StatCard";
 import Card from "../../../components/common/Card";
-import DengueHotspotMap from "../../../components/maps/DengueHotspotMap";
+import ReportGpsMap from "../../../components/maps/ReportGpsMap";
 import adminService from "../../../services/adminService";
 
 export default function Dashboard() {
@@ -18,7 +18,6 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [dashboardError, setDashboardError] = useState("");
   const [activity, setActivity] = useState([]);
-  const [highRiskCount, setHighRiskCount] = useState(0);
   const [systemHealth, setSystemHealth] = useState(null);
   const [healthLoading, setHealthLoading] = useState(true);
 
@@ -45,16 +44,11 @@ export default function Dashboard() {
       .finally(() => setHealthLoading(false));
   }, []);
 
-  const handleRiskDataLoaded = (data) => {
-    // Count districts that are CRITICAL or HIGH risk
-    const highRisk = data.filter(d => d.riskLevel === 'CRITICAL' || d.riskLevel === 'HIGH').length;
-    setHighRiskCount(highRisk);
-  };
-
   const s = stats ?? {
     totalUsers: 0,
     totalPhis: 0,
     totalReports: 0,
+    highRiskReports: 0,
     resolvedReports: 0,
     pendingReports: 0,
   };
@@ -83,8 +77,8 @@ export default function Dashboard() {
           tint="primary"
         />
         <StatCard
-          label="High Risk Areas"
-          value={loading || dashboardError ? "—" : highRiskCount}
+          label="High Risk Reports"
+          value={loading || dashboardError ? "—" : s.highRiskReports}
           icon={AlertTriangle}
           tint="destructive"
         />
@@ -107,13 +101,12 @@ export default function Dashboard() {
         </p>
       )}
 
-      {/* Dengue Monitoring Map */}
       <Card
-        title="Dengue Risk Hotspots"
-        description="Predicted dengue risk levels based on NDCU data."
+        title="Citizen Report GPS Locations"
+        description="Actual locations selected or detected when citizen reports were submitted. Updates every 30 seconds."
         className="mt-6"
       >
-        <DengueHotspotMap onDataLoaded={handleRiskDataLoaded} />
+        <ReportGpsMap />
       </Card>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">

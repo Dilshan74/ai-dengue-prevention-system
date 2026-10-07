@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   MapPin,
@@ -55,7 +55,13 @@ export default function UploadImage() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   // Geolocation coordinates
-  const [coords, setCoords] = useState({ lat: null, lon: null, gpsActive: false, isLocating: false });
+  const [coords, setCoords] = useState({
+    lat: null,
+    lon: null,
+    accuracy: null,
+    gpsActive: false,
+    isLocating: false,
+  });
   const [showMap, setShowMap] = useState(false);
   const [gpsBlocked, setGpsBlocked] = useState(false);
 
@@ -65,7 +71,7 @@ export default function UploadImage() {
   const [ndcuCases, setNdcuCases] = useState(980);
   const [reportDensity, setReportDensity] = useState(8);
 
-  const activeLocation = locationText.trim() || (coords.gpsActive && coords.lat != null ? `${coords.lat}° N, ${coords.lon}° E` : "");
+  const activeLocation = locationText.trim() || (coords.gpsActive && coords.lat != null ? `${coords.lat.toFixed(6)}° N, ${coords.lon.toFixed(6)}° E` : "");
 
   const findClosestDistrict = (lat, lon) => {
     let closest = VERIFIED_LOCATIONS[0];
@@ -105,24 +111,36 @@ export default function UploadImage() {
       return;
     }
 
-    setCoords((prev) => ({ ...prev, isLocating: true }));
+    setCoords({
+      lat: null,
+      lon: null,
+      accuracy: null,
+      gpsActive: false,
+      isLocating: true,
+    });
+    setLocationText("");
     toast.info("Accessing device GPS coordinates...");
 
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
-        const lat = Number(pos.coords.latitude.toFixed(4));
-        const lon = Number(pos.coords.longitude.toFixed(4));
+        const lat = pos.coords.latitude;
+        const lon = pos.coords.longitude;
 
-        setCoords({ lat, lon, gpsActive: true, isLocating: false });
+        setCoords({
+          lat,
+          lon,
+          accuracy: pos.coords.accuracy,
+          gpsActive: true,
+          isLocating: false,
+        });
         setGpsBlocked(false);
+        setLocationText(`${lat.toFixed(6)}, ${lon.toFixed(6)}`);
 
         const addr = await reverseGeocode(lat, lon);
         if (addr) {
           setLocationText(addr);
           toast.success(`Location detected: ${addr}`);
         } else {
-          const closest = findClosestDistrict(lat, lon);
-          setLocationText(closest.value);
           toast.success(`GPS coordinates locked: ${lat}° N, ${lon}° E`);
         }
 
@@ -140,23 +158,21 @@ export default function UploadImage() {
           toast.error(`GPS Error: ${err.message || "Could not retrieve position"}`);
         }
       },
-      { enableHighAccuracy: true, timeout: 8000 }
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     );
   };
 
   // Handle Map Pinning
   const handleMapPin = async (newPos) => {
     if (!newPos) return;
-    const lat = Number(newPos.lat.toFixed(4));
-    const lon = Number(newPos.lng.toFixed(4));
-    setCoords({ lat, lon, gpsActive: true, isLocating: false });
+    const lat = newPos.lat;
+    const lon = newPos.lng;
+    setCoords({ lat, lon, accuracy: null, gpsActive: true, isLocating: false });
+    setLocationText(`${lat.toFixed(6)}, ${lon.toFixed(6)}`);
 
     const addr = await reverseGeocode(lat, lon);
     if (addr) {
       setLocationText(addr);
-    } else {
-      const closest = findClosestDistrict(lat, lon);
-      setLocationText(closest.value);
     }
     const closest = findClosestDistrict(lat, lon);
     setRainfallMm(closest.rainfall);
@@ -183,8 +199,9 @@ export default function UploadImage() {
         location: activeLocation,
         category,
         description,
-        latitude: coords.lat != null ? coords.lat : 6.9271,
-        longitude: coords.lon != null ? coords.lon : 79.8612,
+        ...(coords.gpsActive && coords.lat != null && coords.lon != null
+          ? { latitude: coords.lat, longitude: coords.lon }
+          : {}),
       };
 
       // Only attach manual overrides if the user explicitly enabled simulation mode
@@ -204,6 +221,10 @@ export default function UploadImage() {
           location: activeLocation,
           category,
           description,
+          coords:
+            coords.gpsActive && coords.lat != null && coords.lon != null
+              ? { lat: coords.lat, lng: coords.lon }
+              : null,
         },
       });
     } catch (err) {
@@ -301,7 +322,11 @@ export default function UploadImage() {
                 <div className="flex items-center gap-1.5">
                   <span className="font-mono text-foreground font-medium text-xs">
                     {coords.gpsActive && coords.lat != null ? (
-                      `📍 ${coords.lat}° N, ${coords.lon}° E`
+                      `📍 ${coords.lat.toFixed(6)}° N, ${coords.lon.toFixed(6)}° E${
+                        coords.accuracy != null
+                          ? ` (±${Math.round(coords.accuracy)} m)`
+                          : ""
+                      }`
                     ) : (
                       <span className="text-muted-foreground font-normal">
                         📍 GPS: Not detected yet
@@ -328,7 +353,9 @@ export default function UploadImage() {
               {showMap && (
                 <div className="rounded-xl border border-border p-2 bg-muted/20">
                   <div className="text-[11px] text-muted-foreground mb-1.5 flex items-center justify-between">
-                    <span>Click or tap anywhere on the map to pin the exact hazard location:</span>
+                    <span>
+                      Use the GPS button below to place your current location, or click the map when Google Maps is enabled:
+                    </span>
                   </div>
                   <LocationPicker
                     value={coords.lat != null && coords.lon != null ? { lat: coords.lat, lng: coords.lon } : null}
