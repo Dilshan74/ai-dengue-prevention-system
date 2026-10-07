@@ -198,15 +198,25 @@ export const uploadInspectionPhotos = asyncHandler(async (req, res) => {
 
 export const profile = asyncHandler(async (req, res) => {
   const { passwordHash, ...rest } = req.user; // eslint-disable-line no-unused-vars
-  res.json(rest);
+  const visits = await Visit.find({ phiId: req.user.id }).lean();
+  const completedVisits = visits.filter((v) => v.status === "Completed").length;
+  const resolvedPercent = visits.length > 0 ? Math.round((completedVisits / visits.length) * 100) : 100;
+
+  res.json({
+    ...rest,
+    employeeId: req.user.id,
+    visitsCount: visits.length || req.user.inspections || 0,
+    resolvedRate: `${resolvedPercent}%`,
+    rating: req.user.rating || 5.0,
+  });
 });
 
 export const updateProfile = asyncHandler(async (req, res) => {
   const { name, mobile, area } = req.body;
   const patch = {};
   if (name) patch.name = name;
-  if (mobile) patch.mobile = mobile;
-  if (area) patch.area = area;
+  if (mobile !== undefined) patch.mobile = mobile;
+  if (area !== undefined) patch.area = area;
 
   const updated = await User.findOneAndUpdate({ id: req.user.id }, patch, { new: true }).lean();
   const { passwordHash, ...rest } = updated; // eslint-disable-line no-unused-vars

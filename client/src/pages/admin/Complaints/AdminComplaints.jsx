@@ -64,10 +64,10 @@ function AssignModal({ report, phis, onClose, onSaved }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="w-full max-w-md rounded-2xl bg-card border border-border shadow-2xl overflow-hidden">
+      <div className="w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 border border-border shadow-2xl overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <div>
@@ -87,7 +87,7 @@ function AssignModal({ report, phis, onClose, onSaved }) {
         {/* Body */}
         <div className="px-6 py-5 space-y-4">
           {/* Current info */}
-          <div className="rounded-xl bg-muted/40 p-3 text-sm space-y-1">
+          <div className="rounded-xl bg-slate-100 dark:bg-slate-800 p-3 text-sm space-y-1">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Citizen</span>
               <span className="font-medium">{report.citizenName || "—"}</span>
@@ -141,7 +141,7 @@ function AssignModal({ report, phis, onClose, onSaved }) {
               value={comments}
               onChange={(e) => setComments(e.target.value)}
               placeholder="Add a note for the PHI officer…"
-              className="h-20 w-full rounded border border-input bg-white p-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring resize-none"
+              className="h-20 w-full rounded border border-input bg-white dark:bg-slate-800 p-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring resize-none"
             />
           </FormField>
         </div>
@@ -183,10 +183,10 @@ function StatusModal({ report, onClose, onSaved }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="w-full max-w-sm rounded-2xl bg-card border border-border shadow-2xl overflow-hidden">
+      <div className="w-full max-w-sm rounded-2xl bg-white dark:bg-slate-900 border border-border shadow-2xl overflow-hidden">
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <h2 className="text-base font-semibold">Update Status</h2>
           <button onClick={onClose} className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted transition-colors">

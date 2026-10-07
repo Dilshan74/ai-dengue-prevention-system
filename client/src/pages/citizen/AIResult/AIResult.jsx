@@ -522,7 +522,7 @@ export default function AIResult() {
                     Report {dispatchedReport.id} Successfully Dispatched
                   </div>
                   <Link
-                    to="/citizen/complaints"
+                    to="/citizen/track"
                     className="text-primary hover:underline font-semibold text-xs whitespace-nowrap"
                   >
                     Track in My Complaints →

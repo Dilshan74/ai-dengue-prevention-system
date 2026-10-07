@@ -34,7 +34,7 @@ export default function Modal({
         role="dialog"
         aria-modal="true"
         className={cn(
-          "fade-in relative w-full max-w-lg rounded-2xl border border-border bg-card p-6 shadow-xl",
+          "fade-in relative w-full max-w-lg rounded-2xl border border-border bg-white dark:bg-slate-900 p-6 shadow-2xl",
           className,
         )}
       >
