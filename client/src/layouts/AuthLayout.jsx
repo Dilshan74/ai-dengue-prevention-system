@@ -1,5 +1,5 @@
 import { Link, Outlet } from "react-router-dom";
-import { ShieldCheck } from "lucide-react";
+import BrandLogo from "../components/common/BrandLogo";
 import { APP_NAME } from "../utils/constants";
 
 /** Premium split-screen layout for login, register and password recovery. */
@@ -15,8 +15,8 @@ export default function AuthLayout() {
 
         <div className="relative z-10 slide-up delay-100">
           <Link to="/" className="inline-flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white text-cyan-600 shadow-lg">
-              <ShieldCheck className="h-7 w-7" />
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white text-primary shadow-lg">
+              <BrandLogo className="h-7 w-7" />
             </div>
             <span className="text-2xl font-bold tracking-tight">{APP_NAME}</span>
           </Link>
@@ -41,7 +41,7 @@ export default function AuthLayout() {
         {/* Mobile Header */}
         <div className="absolute top-6 left-6 lg:hidden slide-in-right delay-100">
           <Link to="/" className="inline-flex items-center gap-2">
-            <ShieldCheck className="h-6 w-6 text-primary" />
+            <BrandLogo className="h-6 w-6 text-primary" />
             <span className="text-lg font-bold text-foreground">{APP_NAME}</span>
           </Link>
         </div>

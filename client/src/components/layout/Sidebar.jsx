@@ -1,5 +1,6 @@
 import { Link, NavLink } from "react-router-dom";
-import { LogOut, ShieldCheck } from "lucide-react";
+import { LogOut } from "lucide-react";
+import BrandLogo from "../common/BrandLogo";
 import { APP_NAME } from "../../utils/constants";
 import useAuth from "../../hooks/useAuth";
 
@@ -20,7 +21,7 @@ export default function Sidebar({ role, items, onNavigate }) {
       {/* Logo / Brand */}
       <div className="flex items-center gap-3 border-b border-sidebar-border px-5 py-5 slide-in-right delay-100">
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-teal-400 text-white shadow-lg shadow-teal-500/20">
-          <ShieldCheck className="h-6 w-6" />
+          <BrandLogo className="h-6 w-6" />
         </div>
         <div>
           <div className="text-lg font-semibold text-white tracking-tight">{APP_NAME}</div>

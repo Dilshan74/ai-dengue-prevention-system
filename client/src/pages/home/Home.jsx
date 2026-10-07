@@ -3,6 +3,8 @@ import { ShieldCheck, ArrowRight, Zap, Target, Lock, ChevronRight } from "lucide
 import Navbar from "../../components/layout/Navbar";
 import Footer from "../../components/layout/Footer";
 import Button from "../../components/common/Button";
+import BrandLogo from "../../components/common/BrandLogo";
+import Mosquito3D from "../../components/3d/Mosquito3D";
 
 const NAV_LINKS = [
   { href: "#features", label: "Platform Features" },
@@ -73,30 +75,58 @@ export default function Home() {
           <div className="absolute -bottom-20 -left-20 w-[600px] h-[600px] bg-blue-500/10 blur-[100px] rounded-full mix-blend-multiply opacity-60" />
         </div>
 
-        <div className="relative z-10 mx-auto max-w-6xl px-4 md:px-6 text-center">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-medium mb-6 slide-up">
-            <ShieldCheck className="h-4 w-4" />
-            <span>Ministry of Health Initiative</span>
-          </div>
-          
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-4 slide-up delay-100">
-            Stop Dengue Before <br className="hidden md:block" />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-cyan-500">
-              It Starts.
-            </span>
-          </h1>
-          
-          <p className="mx-auto max-w-2xl text-base text-muted-foreground mb-8 leading-relaxed slide-up delay-200">
-            Empower your community with AI-driven early detection. Report potential mosquito breeding sites instantly and let intelligent routing handle the rest.
-          </p>
-          
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 slide-up delay-300">
-            <Button as={Link} to="/register" size="lg" className="w-full sm:w-auto h-12 px-8 text-sm font-medium shadow-xl shadow-primary/20">
-              Join the Effort <ArrowRight className="h-4 w-4 ml-1" />
-            </Button>
-            <Button as={Link} to="/login" variant="outline" size="lg" className="w-full sm:w-auto h-12 px-8 text-sm font-medium">
-              Sign in to Dashboard
-            </Button>
+        <div className="relative z-10 mx-auto max-w-6xl px-4 md:px-6">
+          <div className="grid lg:grid-cols-[1.1fr_1fr] gap-10 items-center">
+            {/* Left Column: Headline, Description & CTAs */}
+            <div className="text-center lg:text-left">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-medium mb-6 slide-up">
+                <BrandLogo className="h-4 w-4" />
+                <span>Ministry of Health Initiative · National Dengue Control</span>
+              </div>
+              
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight mb-5 slide-up delay-100 leading-tight">
+                Stop Dengue Before <br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-teal-500 to-cyan-500">
+                  It Starts.
+                </span>
+              </h1>
+              
+              <p className="max-w-xl text-base text-muted-foreground mb-8 leading-relaxed slide-up delay-200">
+                Empower your community with AI-driven early detection. Report potential mosquito breeding sites instantly, analyze high-risk <em>Aedes aegypti</em> vectors with computer vision, and let intelligent PHI routing handle the rest.
+              </p>
+              
+              <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 slide-up delay-300">
+                <Button as={Link} to="/register" size="lg" className="w-full sm:w-auto h-12 px-8 text-sm font-semibold shadow-xl shadow-primary/25">
+                  Join the Effort <ArrowRight className="h-4 w-4 ml-1.5" />
+                </Button>
+                <Button as={Link} to="/login" variant="outline" size="lg" className="w-full sm:w-auto h-12 px-8 text-sm font-medium">
+                  Sign in to Dashboard
+                </Button>
+              </div>
+
+              {/* Quick Spec Highlights */}
+              <div className="mt-8 pt-6 border-t border-border/60 flex items-center justify-center lg:justify-start gap-6 text-xs text-muted-foreground">
+                <div>
+                  <div className="font-bold text-base text-foreground">YOLOv8</div>
+                  <span>Real-time Vision</span>
+                </div>
+                <div className="h-8 w-[1px] bg-border" />
+                <div>
+                  <div className="font-bold text-base text-foreground">93.4%</div>
+                  <span>Model Accuracy</span>
+                </div>
+                <div className="h-8 w-[1px] bg-border" />
+                <div>
+                  <div className="font-bold text-base text-emerald-600 dark:text-emerald-400">⚡ Live</div>
+                  <span>PHI Dispatch</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column: 3D Animated Mosquito Model with Holographic Scanner */}
+            <div className="flex items-center justify-center relative">
+              <Mosquito3D />
+            </div>
           </div>
         </div>
       </section>
