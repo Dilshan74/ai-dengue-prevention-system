@@ -94,6 +94,12 @@ export default function DengueHotspotMap({
     return { lat: avgLat, lng: avgLng };
   }, [markers]);
 
+  const latestSourceRecord = riskData.reduce((latest, current) => {
+    if (!current.reportUrl) return latest;
+    if (!latest || new Date(current.lastUpdated) > new Date(latest.lastUpdated)) return current;
+    return latest;
+  }, null);
+
   /* Render Info Window content for a selected marker. */
   const renderInfoWindow = (marker) => {
     const r = marker.data;
@@ -216,7 +222,11 @@ export default function DengueHotspotMap({
       )}
 
       {/* Dynamic Map Legend replacing the static legend */}
-      <MapLegend lastUpdated={lastUpdated} source="NDCU" />
+      <MapLegend
+        lastUpdated={lastUpdated}
+        source={riskData.find((record) => record.source)?.source || "NDCU"}
+        sourceUrl={latestSourceRecord?.reportUrl}
+      />
 
       {/* Districts Grouped by Risk Level */}
       {riskData.length > 0 && (

@@ -89,6 +89,21 @@ export const createComplaint = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Description and location are required");
   }
 
+  const latitude = lat === undefined || lat === "" ? null : Number(lat);
+  const longitude = lng === undefined || lng === "" ? null : Number(lng);
+  if (
+    (latitude === null) !== (longitude === null) ||
+    (latitude !== null &&
+      (!Number.isFinite(latitude) ||
+        latitude < -90 ||
+        latitude > 90 ||
+        !Number.isFinite(longitude) ||
+        longitude < -180 ||
+        longitude > 180))
+  ) {
+    throw new ApiError(400, "Latitude and longitude must be valid coordinate values");
+  }
+
   let images = (req.files || []).map((f) => uploadUrl(f.filename));
   if (images.length === 0) {
     if (req.body.images) {
@@ -129,8 +144,8 @@ export const createComplaint = asyncHandler(async (req, res) => {
     description,
     location,
     address: address || location,
-    lat: lat ? Number(lat) : null,
-    lng: lng ? Number(lng) : null,
+    lat: latitude,
+    lng: longitude,
     image: primaryImage,
     images: images.filter(Boolean),
     status: "Pending",

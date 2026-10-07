@@ -1,4 +1,7 @@
 import bcrypt from "bcryptjs";
+import axios from "axios";
+import mongoose from "mongoose";
+import { env } from "../config/env.js";
 import User from "../models/user.js";
 import Report from "../models/report.js";
 import Area from "../models/area.js";
@@ -16,7 +19,7 @@ export const dashboard = asyncHandler(async (req, res) => {
   const [totalUsers, totalPhis, totalReports, highRiskReports, resolvedReports, pendingReports, recentReports] =
     await Promise.all([
       User.countDocuments({ role: "citizen" }),
-      User.countDocuments({ role: "phi" }),
+      User.countDocuments({ role: "phi", status: "Active" }),
       Report.countDocuments(),
       Report.countDocuments({ risk: "High" }),
       Report.countDocuments({ status: "Resolved" }),
@@ -27,6 +30,31 @@ export const dashboard = asyncHandler(async (req, res) => {
   res.json({
     stats: { totalUsers, totalPhis, totalReports, highRiskReports, resolvedReports, pendingReports },
     recentReports,
+  });
+});
+
+export const systemHealth = asyncHandler(async (req, res) => {
+  let aiModel = { status: "offline", riskModelLoaded: null };
+
+  try {
+    const response = await axios.get(`${env.aiServiceUrl}/health`, { timeout: 3000 });
+    if (response.data?.status === "online") {
+      aiModel = {
+        status: "online",
+        riskModelLoaded:
+          typeof response.data.rf_model_loaded === "boolean"
+            ? response.data.rf_model_loaded
+            : null,
+      };
+    }
+  } catch (error) {
+    console.warn(`[Admin health] AI service check failed: ${error.message}`);
+  }
+
+  res.json({
+    api: "online",
+    database: mongoose.connection.readyState === 1 ? "online" : "offline",
+    aiModel,
   });
 });
 

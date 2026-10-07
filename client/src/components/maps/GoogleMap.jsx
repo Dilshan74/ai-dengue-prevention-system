@@ -88,8 +88,8 @@ export default function GoogleMap({
       <div className="absolute inset-0">
         {hasGoogleKey ? (
           <Map
-            defaultCenter={center || SRI_LANKA}
-            defaultZoom={zoom || DEFAULT_ZOOM}
+            center={center || SRI_LANKA}
+            zoom={zoom || DEFAULT_ZOOM}
             mapId="DEMO_MAP_ID"
             gestureHandling="cooperative"
             disableDefaultUI={false}
@@ -141,7 +141,7 @@ export default function GoogleMap({
               width="100%"
               height="100%"
               style={{ border: 0 }}
-              src={`https://www.openstreetmap.org/export/embed.html?bbox=${(center?.lng || SRI_LANKA.lng) - 0.25}%2C${(center?.lat || SRI_LANKA.lat) - 0.25}%2C${(center?.lng || SRI_LANKA.lng) + 0.25}%2C${(center?.lat || SRI_LANKA.lat) + 0.25}&layer=mapnik&marker=${center?.lat || SRI_LANKA.lat}%2C${center?.lng || SRI_LANKA.lng}`}
+              src={`https://www.openstreetmap.org/export/embed.html?bbox=${(center?.lng || SRI_LANKA.lng) - 0.25}%2C${(center?.lat || SRI_LANKA.lat) - 0.25}%2C${(center?.lng || SRI_LANKA.lng) + 0.25}%2C${(center?.lat || SRI_LANKA.lat) + 0.25}&layer=mapnik${markers.length === 1 ? `&marker=${markers[0].lat}%2C${markers[0].lng}` : ""}`}
               className="w-full h-full"
             />
           </div>
@@ -150,4 +150,3 @@ export default function GoogleMap({
     </div>
   );
 }
-

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useLocation, useNavigate, Link } from "react-router-dom";
+import { useLocation, Link } from "react-router-dom";
 import {
   Eye,
   AlertTriangle,
@@ -28,7 +28,6 @@ import aiService from "../../../services/aiService";
 
 export default function AIResult() {
   const location = useLocation();
-  const navigate = useNavigate();
   const state = location.state || {};
   const prediction = state.prediction;
   const originalPreview = state.imagePreview;
@@ -64,6 +63,9 @@ export default function AIResult() {
   }
 
   const reportLocation = state.location || prediction.location || "Location not specified";
+  const reportCoords = state.coords;
+  const hasReportCoords =
+    Number.isFinite(reportCoords?.lat) && Number.isFinite(reportCoords?.lng);
 
   // Machine Learning Risk values from Random Forest model
   const rfRiskScore = prediction.rfRiskScore !== undefined ? Number(prediction.rfRiskScore) : 0;
@@ -87,7 +89,6 @@ export default function AIResult() {
         "Empty water-retaining receptacles immediately to eliminate mosquito breeding larvae.",
         "Store unused tires and containers in dry, sheltered areas or recycle them.",
       ];
-  const modelSource = prediction.source || "YOLOv8 + Random Forest (FastAPI)";
   const reportId = prediction.id || "N/A";
 
   // Image source selection
@@ -134,6 +135,7 @@ export default function AIResult() {
       const payload = {
         reportId,
         location: reportLocation,
+        coordinates: hasReportCoords ? reportCoords : null,
         machineLearningRiskScore: `${rfRiskScore} / 100`,
         machineLearningRiskLevel: rfRiskLevel,
         yoloConfidence: `${confidence}%`,
@@ -196,8 +198,6 @@ export default function AIResult() {
           state.description ||
           `AI Dengue Risk Alert: ${rfRiskLevel} risk site detected (${detectedObjects.map((o) => o.label).join(", ") || "breeding hazard"}).`,
         category: state.category || "container",
-        lat: state.coords?.lat || prediction?.latitude || 6.8712,
-        lng: state.coords?.lon || prediction?.longitude || 79.8890,
         risk: rfRiskLevel,
         image: primaryImg,
         images: allImages.length > 0 ? allImages : [primaryImg].filter(Boolean),
@@ -205,6 +205,10 @@ export default function AIResult() {
         confidence: confidence,
         detectedObjects: detectedObjects,
       };
+      if (hasReportCoords) {
+        payload.lat = reportCoords.lat;
+        payload.lng = reportCoords.lng;
+      }
 
       const res = await citizenService.createComplaint(payload);
       setDispatchedReport(res);
@@ -235,7 +239,11 @@ export default function AIResult() {
 
       <PageHeader
         title="Dengue Risk Assessment Result"
-        description={`Report ${reportId} · ${reportLocation}`}
+        description={`Report ${reportId} · ${reportLocation}${
+          hasReportCoords
+            ? ` · GPS: ${reportCoords.lat.toFixed(6)}, ${reportCoords.lng.toFixed(6)}`
+            : " · GPS coordinates not selected"
+        }`}
       />
 
       <div className="grid gap-6 lg:grid-cols-[1.1fr_1.3fr]">

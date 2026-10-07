@@ -16,6 +16,10 @@ async function hash(pw) {
 }
 
 async function seed() {
+  if (!env.seedPassword) {
+    throw new Error("SEED_PASSWORD must be set before running the seed script.");
+  }
+
   await connectDB();
 
   // Clear existing data

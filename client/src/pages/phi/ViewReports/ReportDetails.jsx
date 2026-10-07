@@ -182,7 +182,7 @@ export default function ReportDetails() {
                 <MapPin className="h-3.5 w-3.5 text-primary shrink-0" />
                 <span>Location: <strong className="text-foreground">{report.location}</strong></span>
               </div>
-              {report.lat && report.lng && (
+              {report.lat != null && report.lng != null && (
                 <div className="rounded-lg bg-muted/40 p-2 font-mono text-[11px] text-foreground">
                   📍 Coordinates: {report.lat.toFixed(4)}° N, {report.lng.toFixed(4)}° E
                 </div>
@@ -229,4 +229,3 @@ export default function ReportDetails() {
     </>
   );
 }
-

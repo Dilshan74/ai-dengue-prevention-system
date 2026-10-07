@@ -113,12 +113,18 @@ export default function LocationPicker({ value, onChange, className }) {
               width="100%"
               height="100%"
               style={{ border: 0 }}
-              src={`https://www.openstreetmap.org/export/embed.html?bbox=${center.lng - 0.015}%2C${center.lat - 0.01}%2C${center.lng + 0.015}%2C${center.lat + 0.01}&layer=mapnik&marker=${center.lat}%2C${center.lng}`}
+              src={`https://www.openstreetmap.org/export/embed.html?bbox=${center.lng - 0.015}%2C${center.lat - 0.01}%2C${center.lng + 0.015}%2C${center.lat + 0.01}&layer=mapnik${value ? `&marker=${value.lat}%2C${value.lng}` : ""}`}
               className="w-full h-full"
             />
           </div>
         )}
       </div>
+
+      {!value && (
+        <p className="text-xs text-muted-foreground">
+          This is a default map view, not your GPS location. Use a location button below to place the marker.
+        </p>
+      )}
 
       {/* Use My Current Location button */}
       <Button
