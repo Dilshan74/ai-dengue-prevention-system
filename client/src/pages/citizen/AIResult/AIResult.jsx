@@ -24,6 +24,7 @@ import { toast } from "sonner";
 import Button from "../../../components/common/Button";
 import PageHeader from "../../../components/common/PageHeader";
 import citizenService from "../../../services/citizenService";
+import aiService from "../../../services/aiService";
 
 export default function AIResult() {
   const location = useLocation();
@@ -34,6 +35,7 @@ export default function AIResult() {
 
   const [showAnnotated, setShowAnnotated] = useState(true);
   const [isSending, setIsSending] = useState(false);
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
   const [dispatchedReport, setDispatchedReport] = useState(null);
 
   if (!prediction) {
@@ -125,34 +127,44 @@ export default function AIResult() {
   const riskBadge = getRiskBadge(rfRiskLevel);
   const RiskIcon = riskBadge.icon;
 
-  const downloadReport = () => {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({
-      reportId,
-      location: reportLocation,
-      machineLearningRiskScore: `${rfRiskScore} / 100`,
-      machineLearningRiskLevel: rfRiskLevel,
-      yoloConfidence: `${confidence}%`,
-      visualSeverityScore: factors.aiSeverity,
-      environmentalFactors: {
-        rainfall7DayMm: factors.rainfallMm,
-        ndcuDistrictCases: factors.ndcuCases,
-        reportDensity2Km: factors.reportDensity,
-      },
-      detectedHazards: detectedObjects,
-      recommendations,
-      timestamp: new Date().toISOString(),
-      models: {
-        stage1Vision: "YOLOv8 Object Detection (best.pt)",
-        stage2RiskAssessment: "Random Forest Regressor & Classifier (dengue_data.csv)",
-      }
-    }, null, 2));
-    const downloadAnchor = document.createElement("a");
-    downloadAnchor.setAttribute("href", dataStr);
-    downloadAnchor.setAttribute("download", `DengueGuard-ML-Report-${reportId}.json`);
-    document.body.appendChild(downloadAnchor);
-    downloadAnchor.click();
-    downloadAnchor.remove();
-    toast.success("AI/ML Risk analysis report downloaded");
+  const downloadReport = async () => {
+    try {
+      setIsDownloadingPdf(true);
+      toast.info("Generating PDF risk assessment report...");
+      const payload = {
+        reportId,
+        location: reportLocation,
+        machineLearningRiskScore: `${rfRiskScore} / 100`,
+        machineLearningRiskLevel: rfRiskLevel,
+        yoloConfidence: `${confidence}%`,
+        visualSeverityScore: factors.aiSeverity,
+        environmentalFactors: {
+          rainfall7DayMm: factors.rainfallMm,
+          ndcuDistrictCases: factors.ndcuCases,
+          reportDensity2Km: factors.reportDensity,
+        },
+        detectedHazards: detectedObjects,
+        recommendations,
+        timestamp: new Date().toISOString(),
+      };
+
+      const response = await aiService.downloadPdf(payload);
+      const blob = new Blob([response], { type: "application/pdf" });
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const downloadAnchor = document.createElement("a");
+      downloadAnchor.href = downloadUrl;
+      downloadAnchor.download = `DengueGuard-Report-${reportId}.pdf`;
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      window.URL.revokeObjectURL(downloadUrl);
+      toast.success("PDF report downloaded successfully!");
+    } catch (err) {
+      console.error("PDF download failed:", err);
+      toast.error("Failed to generate PDF report");
+    } finally {
+      setIsDownloadingPdf(false);
+    }
   };
 
   const handleSendToPhi = async () => {
@@ -480,8 +492,16 @@ export default function AIResult() {
                   </>
                 )}
               </Button>
-              <Button variant="outline" onClick={downloadReport}>
-                <Download className="h-4 w-4" /> Download Report
+              <Button variant="outline" onClick={downloadReport} disabled={isDownloadingPdf}>
+                {isDownloadingPdf ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" /> Generating PDF...
+                  </>
+                ) : (
+                  <>
+                    <Download className="h-4 w-4" /> Download PDF Report
+                  </>
+                )}
               </Button>
             </div>
 

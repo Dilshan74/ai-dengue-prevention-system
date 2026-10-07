@@ -17,6 +17,13 @@ export const aiService = {
   accuracy: (params) => request({ url: "/ai/accuracy", params }),
   feedback: (reportId, payload) =>
     request({ url: `/ai/predictions/${reportId}/feedback`, method: "post", data: payload }),
+  downloadPdf: (payload) =>
+    request({
+      url: "/ai/download-pdf",
+      method: "post",
+      data: payload,
+      responseType: "blob",
+    }),
 };
 
 export default aiService;

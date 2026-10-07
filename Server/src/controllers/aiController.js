@@ -3,6 +3,7 @@ import { env } from "../config/env.js";
 import { predictionsStore, reportsStore } from "../data/stores.js";
 import { asyncHandler, nextId, ApiError } from "../utils/helpers.js";
 import { uploadUrl } from "../middleware/upload.js";
+import { generateAiReportPdf } from "../utils/exportUtils.js";
 
 const DISTRICT_REGIONS = {
   colombo: { lat: 6.9271, lon: 79.8612, rainfall_baseline: 125.0, ndcu_cases: 980, district: "Colombo" },
@@ -187,4 +188,13 @@ export const feedback = asyncHandler(async (req, res) => {
   );
 
   res.json(updated);
+});
+
+export const downloadReportPdf = asyncHandler(async (req, res) => {
+  const data = req.body || {};
+  const buffer = await generateAiReportPdf(data);
+  const filename = `DengueGuard-Report-${data.reportId || "PRED"}.pdf`;
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+  res.send(buffer);
 });

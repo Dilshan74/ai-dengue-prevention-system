@@ -11,5 +11,6 @@ router.post("/predict", upload.single("image"), aiController.predict);
 router.get("/predictions/:reportId", aiController.getPrediction);
 router.get("/accuracy", aiController.accuracy);
 router.post("/predictions/:reportId/feedback", aiController.feedback);
+router.post("/download-pdf", aiController.downloadReportPdf);
 
 export default router;
