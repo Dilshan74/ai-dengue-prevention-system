@@ -22,24 +22,45 @@ export const dashboard = asyncHandler(async (req, res) => {
 
   let userArea = req.user.area;
   
+  const knownDistricts = [
+    "Colombo", "Gampaha", "Kalutara", "Kandy", "Matale", "Nuwara Eliya", "Nuwaraeliya",
+    "Galle", "Matara", "Hambantota", "Jaffna", "Kilinochchi", "Mannar", 
+    "Vavuniya", "Mullaitivu", "Batticaloa", "Ampara", "Trincomalee", 
+    "Kurunegala", "Puttalam", "Anuradhapura", "Polonnaruwa", "Badulla", 
+    "Monaragala", "Ratnapura", "Kegalle"
+  ];
+
   if (!userArea && req.user.address) {
-    const knownDistricts = [
-      "Colombo", "Gampaha", "Kalutara", "Kandy", "Matale", "Nuwara Eliya", 
-      "Galle", "Matara", "Hambantota", "Jaffna", "Kilinochchi", "Mannar", 
-      "Vavuniya", "Mullaitivu", "Batticaloa", "Ampara", "Trincomalee", 
-      "Kurunegala", "Puttalam", "Anuradhapura", "Polonnaruwa", "Badulla", 
-      "Monaragala", "Ratnapura", "Kegalle"
-    ];
     const addr = req.user.address.toLowerCase();
     userArea = knownDistricts.find(d => addr.includes(d.toLowerCase()));
   }
+  if (!userArea && req.user.address) {
+    userArea = req.user.address.split(",").pop().trim();
+  }
   
   userArea = userArea || "Colombo";
-  
-  let areaRisk = await DengueRisk.findOne({ locationName: userArea }).lean();
+
+  // Check case-insensitive match for DengueRisk
+  let areaRisk = await DengueRisk.findOne({ 
+    locationName: new RegExp(`^${userArea}$`, "i") 
+  }).lean();
   
   if (!areaRisk) {
-    areaRisk = await DengueRisk.findOne({ locationName: "Colombo" }).lean(); // fallback
+    areaRisk = await DengueRisk.findOne({ 
+      locationName: new RegExp(userArea, "i") 
+    }).lean();
+  }
+  
+  if (!areaRisk) {
+    areaRisk = await DengueRisk.findOne({ locationName: "Colombo" }).lean();
+  }
+
+  // Ensure the location name matches the user's registered area
+  if (areaRisk) {
+    areaRisk = {
+      ...areaRisk,
+      locationName: userArea
+    };
   }
 
   res.json({
@@ -205,11 +226,23 @@ export const updateProfile = asyncHandler(async (req, res) => {
   if (req.user.role !== "citizen") {
     throw new ApiError(403, "Citizen profile can only be updated by citizen accounts");
   }
-  const { name, mobile, address, email, nic } = req.body;
+  const { name, mobile, address, email, nic, area } = req.body;
   const patch = {};
   if (name) patch.name = name;
   if (mobile) patch.mobile = mobile;
-  if (address) patch.address = address;
+  if (address) {
+    patch.address = address;
+    const knownDistricts = [
+      "Colombo", "Gampaha", "Kalutara", "Kandy", "Matale", "Nuwara Eliya", "Nuwaraeliya",
+      "Galle", "Matara", "Hambantota", "Jaffna", "Kilinochchi", "Mannar", 
+      "Vavuniya", "Mullaitivu", "Batticaloa", "Ampara", "Trincomalee", 
+      "Kurunegala", "Puttalam", "Anuradhapura", "Polonnaruwa", "Badulla", 
+      "Monaragala", "Ratnapura", "Kegalle"
+    ];
+    const detected = knownDistricts.find((d) => address.toLowerCase().includes(d.toLowerCase()));
+    if (detected) patch.area = detected;
+  }
+  if (area) patch.area = area;
   if (email) patch.email = email;
   if (nic) patch.nic = nic;
 

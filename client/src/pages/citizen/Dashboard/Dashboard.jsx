@@ -17,7 +17,6 @@ import Card from "../../../components/common/Card";
 import { PREVENTION_TIPS, WEATHER } from "../../../utils/constants";
 import citizenService from "../../../services/citizenService";
 import useAuth from "../../../hooks/useAuth";
-import mapService from "../../../services/mapService";
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -31,8 +30,30 @@ export default function Dashboard() {
   const CITY_COORDINATES = {
     Colombo: { lat: 6.9271, lng: 79.8612 },
     Gampaha: { lat: 7.0873, lng: 79.9925 },
+    Kalutara: { lat: 6.5854, lng: 79.9607 },
     Kandy: { lat: 7.2906, lng: 80.6337 },
+    Matale: { lat: 7.4728, lng: 80.6225 },
+    "Nuwara Eliya": { lat: 6.9497, lng: 80.7828 },
+    Nuwaraeliya: { lat: 6.9497, lng: 80.7828 },
     Galle: { lat: 6.0535, lng: 80.2210 },
+    Matara: { lat: 5.9549, lng: 80.5469 },
+    Hambantota: { lat: 6.1246, lng: 81.1185 },
+    Jaffna: { lat: 9.6615, lng: 80.0255 },
+    Kilinochchi: { lat: 9.3803, lng: 80.3770 },
+    Mannar: { lat: 8.9810, lng: 79.9044 },
+    Vavuniya: { lat: 8.7542, lng: 80.4982 },
+    Mullaitivu: { lat: 9.2671, lng: 80.8142 },
+    Batticaloa: { lat: 7.7102, lng: 81.6924 },
+    Ampara: { lat: 7.3018, lng: 81.6747 },
+    Trincomalee: { lat: 8.5874, lng: 81.2152 },
+    Kurunegala: { lat: 7.4818, lng: 80.3609 },
+    Puttalam: { lat: 8.0362, lng: 79.8283 },
+    Anuradhapura: { lat: 8.3114, lng: 80.4037 },
+    Polonnaruwa: { lat: 7.9403, lng: 81.0188 },
+    Badulla: { lat: 6.9934, lng: 81.0550 },
+    Monaragala: { lat: 6.8741, lng: 81.3411 },
+    Ratnapura: { lat: 6.7056, lng: 80.3847 },
+    Kegalle: { lat: 7.2513, lng: 80.3464 },
     Nugegoda: { lat: 6.8721, lng: 79.8890 },
     Rajagiriya: { lat: 6.9091, lng: 79.8952 },
     Maharagama: { lat: 6.8480, lng: 79.9265 },
@@ -43,80 +64,29 @@ export default function Dashboard() {
   useEffect(() => {
     citizenService
       .dashboard()
-      .then(async (data) => {
+      .then((data) => {
         if (data?.stats) setStats(data.stats);
         if (data?.areaRisk) setAreaRisk(data.areaRisk);
-        
-        let finalLat = null;
-        let finalLng = null;
-        let finalLocationName = null;
 
-        try {
-          // Attempt geolocation first
-          const position = await mapService.currentPosition();
-          finalLat = position.lat;
-          finalLng = position.lng;
-          
-          // Reverse geocode to get city name for display
-          try {
-             const geoRes = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${position.lat}&longitude=${position.lng}&localityLanguage=en`);
-             const geoData = await geoRes.json();
-             finalLocationName = geoData.city || geoData.locality || "Current Location";
-          } catch(e) {
-             finalLocationName = "Current Location";
-          }
-          
-          // Update areaRisk to show current location name if geolocated
-          if (data?.areaRisk) {
-              setAreaRisk({
-                  ...data.areaRisk,
-                  locationName: finalLocationName
+        // Always display the citizen's registered area (e.g. Kandy, Galle, Colombo)
+        const resolvedCity = data?.areaRisk?.locationName || user?.area || "Colombo";
+        const coords = CITY_COORDINATES[resolvedCity] || CITY_COORDINATES.Colombo;
+        const finalLat = data?.areaRisk?.latitude || coords.lat;
+        const finalLng = data?.areaRisk?.longitude || coords.lng;
+
+        // Fetch live weather data for the citizen's registered area
+        fetch(`https://api.open-meteo.com/v1/forecast?latitude=${finalLat}&longitude=${finalLng}&current=temperature_2m,relative_humidity_2m,precipitation`)
+          .then((res) => res.json())
+          .then((weatherData) => {
+            if (weatherData && weatherData.current) {
+              setWeather({
+                temp: Math.round(weatherData.current.temperature_2m),
+                humidity: Math.round(weatherData.current.relative_humidity_2m),
+                rain: Math.round(weatherData.current.precipitation),
               });
-          } else {
-             setAreaRisk({
-                 locationName: finalLocationName,
-                 riskLevel: 'UNKNOWN',
-                 riskScore: 0
-             });
-          }
-
-        } catch(e) {
-          // Fallback to registered area coordinates if geolocation fails or is denied
-          const resolvedCity = data?.areaRisk?.locationName || user?.area || "Colombo";
-          const coords = CITY_COORDINATES[resolvedCity] || CITY_COORDINATES.Colombo;
-          finalLat = coords.lat;
-          finalLng = coords.lng;
-          
-          if (data?.areaRisk) {
-              setAreaRisk({
-                  ...data.areaRisk,
-                  locationName: resolvedCity
-              });
-          } else {
-              setAreaRisk({
-                  locationName: resolvedCity,
-                  riskLevel: 'UNKNOWN',
-                  riskScore: 0
-              });
-          }
-        }
-
-        // Fetch live weather data based on the coordinates
-        if (finalLat !== null && finalLng !== null) {
-            fetch(`https://api.open-meteo.com/v1/forecast?latitude=${finalLat}&longitude=${finalLng}&current=temperature_2m,relative_humidity_2m,precipitation`)
-              .then(res => res.json())
-              .then(weatherData => {
-                if (weatherData && weatherData.current) {
-                  setWeather({
-                    temp: Math.round(weatherData.current.temperature_2m),
-                    humidity: Math.round(weatherData.current.relative_humidity_2m),
-                    rain: Math.round(weatherData.current.precipitation),
-                  });
-                }
-              })
-              .catch(err => console.error("Failed to fetch weather", err));
-        }
-
+            }
+          })
+          .catch((err) => console.error("Failed to fetch weather", err));
       })
       .catch(() => {}) // silently fail — user still sees zeros
       .finally(() => setLoading(false));

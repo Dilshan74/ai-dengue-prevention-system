@@ -13,6 +13,7 @@ function getStoredUser() {
   let id = stored?.id;
   let email = stored?.email;
   let name = stored?.name;
+  let area = stored?.area;
 
   // If role is missing or corrupt, recover from JWT token payload
   if ((!role || role === "undefined") && token && typeof token === "string") {
@@ -36,6 +37,7 @@ function getStoredUser() {
       email: email || "",
       name: name || "User",
       role: normalizedRole,
+      area: area || "",
     };
     storage.set(STORAGE_KEYS.user, recovered);
     return recovered;
@@ -64,11 +66,14 @@ export function AuthProvider({ children }) {
     setLoading(false);
   }, []);
 
-  const login = useCallback(({ email, role = ROLES.CITIZEN, name, token }) => {
+  const login = useCallback(({ email, role = ROLES.CITIZEN, name, token, area, ...rest }) => {
+    const prev = storage.get(STORAGE_KEYS.user);
     const nextUser = {
+      ...rest,
       email,
       role: String(role).toLowerCase(),
       name: name ?? email?.split("@")[0] ?? "User",
+      area: area ?? prev?.area ?? "",
     };
     storage.set(STORAGE_KEYS.user, nextUser);
     if (token) storage.set(STORAGE_KEYS.token, token);

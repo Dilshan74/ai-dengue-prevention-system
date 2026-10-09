@@ -1,13 +1,21 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Lock, Mail, MapPin, Phone, User } from "lucide-react";
+import { Lock, Mail, MapPin, Phone, User, Globe } from "lucide-react";
 import { toast } from "sonner";
 import Button from "../../components/common/Button";
-import { FormField, Input, Textarea } from "../../components/common/Field";
+import { FormField, Input, Textarea, Select } from "../../components/common/Field";
 import useAuth from "../../hooks/useAuth";
 import { ROLES, ROLE_HOME } from "../../utils/constants";
 import { rules, validate } from "../../utils/validators";
 import authService from "../../services/authService";
+
+const SRI_LANKA_DISTRICTS = [
+  "Colombo", "Gampaha", "Kalutara", "Kandy", "Matale", "Nuwara Eliya",
+  "Galle", "Matara", "Hambantota", "Jaffna", "Kilinochchi", "Mannar", 
+  "Vavuniya", "Mullaitivu", "Batticaloa", "Ampara", "Trincomalee", 
+  "Kurunegala", "Puttalam", "Anuradhapura", "Polonnaruwa", "Badulla", 
+  "Monaragala", "Ratnapura", "Kegalle"
+];
 
 const INITIAL = {
   name: "",
@@ -16,6 +24,7 @@ const INITIAL = {
   password: "",
   confirm: "",
   address: "",
+  area: "Colombo",
 };
 
 export default function Register() {
@@ -49,9 +58,10 @@ export default function Register() {
         mobile: values.mobile,
         password: values.password,
         address: values.address,
+        area: values.area,
       });
-      // data = { token, id, email, name, role }
-      login({ email: data.email, name: data.name, role: data.role ?? ROLES.CITIZEN, token: data.token });
+      // data = { token, id, email, name, role, area }
+      login({ email: data.email, name: data.name, role: data.role ?? ROLES.CITIZEN, token: data.token, area: data.area || values.area });
       toast.success("Account created successfully!");
       navigate(ROLE_HOME[ROLES.CITIZEN]);
     } catch (err) {
@@ -127,6 +137,15 @@ export default function Register() {
             />
           </FormField>
         </div>
+        <FormField label="District / Area" htmlFor="area">
+          <Select
+            id="area"
+            value={values.area}
+            onChange={onChange("area")}
+            options={SRI_LANKA_DISTRICTS.map((d) => ({ value: d, label: d }))}
+          />
+        </FormField>
+
         <FormField label="Address" htmlFor="address" error={errors.address}>
           <div className="relative">
             <MapPin className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground" />

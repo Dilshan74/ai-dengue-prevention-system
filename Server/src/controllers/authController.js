@@ -17,7 +17,7 @@ function publicUser(user) {
  */
 function authResponse(user) {
   const token = signToken({ id: user.id, role: user.role });
-  return { token, id: user.id, email: user.email, name: user.name, role: user.role };
+  return { token, id: user.id, email: user.email, name: user.name, role: user.role, area: user.area || "" };
 }
 
 export const login = asyncHandler(async (req, res) => {
@@ -70,13 +70,31 @@ export const login = asyncHandler(async (req, res) => {
 });
 
 export const register = asyncHandler(async (req, res) => {
-  const { name, email, mobile, password, address } = req.body;
+  const { name, email, mobile, password, address, area } = req.body;
   if (!name || !email || !password) {
     throw new ApiError(400, "Name, email and password are required");
   }
 
   const existing = await User.findOne({ email: String(email).toLowerCase() });
   if (existing) throw new ApiError(409, "An account with this email already exists");
+
+  const knownDistricts = [
+    "Colombo", "Gampaha", "Kalutara", "Kandy", "Matale", "Nuwara Eliya", "Nuwaraeliya",
+    "Galle", "Matara", "Hambantota", "Jaffna", "Kilinochchi", "Mannar", 
+    "Vavuniya", "Mullaitivu", "Batticaloa", "Ampara", "Trincomalee", 
+    "Kurunegala", "Puttalam", "Anuradhapura", "Polonnaruwa", "Badulla", 
+    "Monaragala", "Ratnapura", "Kegalle"
+  ];
+
+  let userArea = area;
+  if (!userArea && address) {
+    const addr = address.toLowerCase();
+    userArea = knownDistricts.find(d => addr.includes(d.toLowerCase()));
+  }
+  if (!userArea && address) {
+    userArea = address.split(",").pop().trim();
+  }
+  userArea = userArea || "Colombo";
 
   const passwordHash = await bcrypt.hash(password, 10);
   const user = await User.create({
@@ -85,6 +103,7 @@ export const register = asyncHandler(async (req, res) => {
     email: String(email).toLowerCase(),
     mobile: mobile || "",
     address: address || "",
+    area: userArea,
     passwordHash,
     role: "citizen",
     status: "Active",

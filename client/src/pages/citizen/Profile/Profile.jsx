@@ -181,16 +181,30 @@ export default function Profile() {
               </div>
             </div>
 
-            <div className="sm:col-span-2 rounded-2xl border border-border/80 bg-muted/20 p-3.5 flex items-start gap-3">
+            <div className="rounded-2xl border border-border/80 bg-muted/20 p-3.5 flex items-start gap-3">
               <div className="grid h-8 w-8 place-items-center rounded-xl bg-primary/10 text-primary shrink-0">
                 <MapPin className="h-4 w-4" />
               </div>
               <div>
                 <dt className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                  Residential Area / Address
+                  District / Area
                 </dt>
                 <dd className="mt-0.5 text-sm font-semibold text-foreground">
-                  {profileData?.address || profileData?.area || "Not Provided"}
+                  {profileData?.area || user?.area || "Not Provided"}
+                </dd>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-border/80 bg-muted/20 p-3.5 flex items-start gap-3">
+              <div className="grid h-8 w-8 place-items-center rounded-xl bg-primary/10 text-primary shrink-0">
+                <MapPin className="h-4 w-4" />
+              </div>
+              <div>
+                <dt className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                  Residential Address
+                </dt>
+                <dd className="mt-0.5 text-sm font-semibold text-foreground">
+                  {profileData?.address || "Not Provided"}
                 </dd>
               </div>
             </div>

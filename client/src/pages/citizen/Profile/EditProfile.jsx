@@ -3,10 +3,18 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import Button from "../../../components/common/Button";
 import PageHeader from "../../../components/common/PageHeader";
-import { FormField, Input, Textarea } from "../../../components/common/Field";
+import { FormField, Input, Textarea, Select } from "../../../components/common/Field";
 import { rules, validate } from "../../../utils/validators";
 import citizenService from "../../../services/citizenService";
 import useAuth from "../../../hooks/useAuth";
+
+const SRI_LANKA_DISTRICTS = [
+  "Colombo", "Gampaha", "Kalutara", "Kandy", "Matale", "Nuwara Eliya",
+  "Galle", "Matara", "Hambantota", "Jaffna", "Kilinochchi", "Mannar", 
+  "Vavuniya", "Mullaitivu", "Batticaloa", "Ampara", "Trincomalee", 
+  "Kurunegala", "Puttalam", "Anuradhapura", "Polonnaruwa", "Badulla", 
+  "Monaragala", "Ratnapura", "Kegalle"
+];
 
 const INITIAL = {
   name: "",
@@ -14,6 +22,7 @@ const INITIAL = {
   mobile: "",
   nic: "",
   address: "",
+  area: "Colombo",
 };
 
 export default function EditProfile() {
@@ -33,7 +42,8 @@ export default function EditProfile() {
           email: data.email || "",
           mobile: data.mobile || "",
           nic: data.nic || "",
-          address: data.address || data.area || "",
+          address: data.address || "",
+          area: data.area || "Colombo",
         });
       })
       .catch(() => {
@@ -66,11 +76,10 @@ export default function EditProfile() {
         mobile: values.mobile,
         nic: values.nic,
         address: values.address,
+        area: values.area,
       });
-      // Update the AuthContext's cached name if it changed
-      if (values.name !== user?.name) {
-        login({ ...user, name: values.name });
-      }
+      // Update the AuthContext's cached user
+      login({ ...user, name: values.name, area: values.area });
       toast.success("Profile updated");
       navigate("/citizen/profile");
     } catch (err) {
@@ -107,6 +116,14 @@ export default function EditProfile() {
           </FormField>
           <FormField label="NIC" htmlFor="nic">
             <Input id="nic" value={values.nic} onChange={onChange("nic")} />
+          </FormField>
+          <FormField label="District / Area" htmlFor="area" className="sm:col-span-2">
+            <Select
+              id="area"
+              value={values.area}
+              onChange={onChange("area")}
+              options={SRI_LANKA_DISTRICTS.map((d) => ({ value: d, label: d }))}
+            />
           </FormField>
           <FormField label="Address" htmlFor="address" error={errors.address} className="sm:col-span-2">
             <Textarea
