@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import {
   Bell,
   Camera,
@@ -10,8 +9,7 @@ import {
   User,
 } from "lucide-react";
 import DashboardLayout from "./DashboardLayout";
-import phiService from "../services/phiService";
-import notificationService from "../services/notificationService";
+import useNotification from "../hooks/useNotification";
 
 const baseItems = [
   { to: "/phi", label: "Dashboard", icon: LayoutDashboard, end: true },
@@ -25,34 +23,12 @@ const baseItems = [
 ];
 
 export default function PHILayout() {
-  const [stats, setStats] = useState(null);
-  const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const { unreadCount } = useNotification();
 
-  useEffect(() => {
-    phiService
-      .dashboard()
-      .then((res) => {
-        if (res?.stats) setStats(res.stats);
-      })
-      .catch(() => {});
-
-    notificationService
-      .unreadCount()
-      .then((res) => {
-        if (res?.count != null) setUnreadNotifications(res.count);
-      })
-      .catch(() => {});
-  }, []);
-
+  // Dynamic notification counter: only increments (1, 2, 3...) when new unread notifications arrive
   const navItems = baseItems.map((item) => {
-    if (item.to === "/phi/reports" && stats?.pending > 0) {
-      return { ...item, badge: stats.pending };
-    }
-    if (item.to === "/phi/visits" && stats?.scheduledVisits > 0) {
-      return { ...item, badge: stats.scheduledVisits };
-    }
-    if (item.to === "/phi/notifications" && unreadNotifications > 0) {
-      return { ...item, badge: unreadNotifications };
+    if (item.to === "/phi/notifications" && unreadCount > 0) {
+      return { ...item, badge: unreadCount };
     }
     return item;
   });

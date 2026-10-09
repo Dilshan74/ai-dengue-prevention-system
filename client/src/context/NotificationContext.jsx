@@ -1,28 +1,66 @@
-import { createContext, useCallback, useMemo, useState } from "react";
+import { createContext, useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { NOTIFICATIONS } from "../utils/constants";
+import notificationService from "../services/notificationService";
 
 export const NotificationContext = createContext(null);
 
 export function NotificationProvider({ children }) {
-  const [items, setItems] = useState(() =>
-    NOTIFICATIONS.map((n) => ({ ...n, read: false })),
-  );
+  const [items, setItems] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
 
-  const unreadCount = useMemo(
-    () => items.filter((item) => !item.read).length,
-    [items],
-  );
-
-  const markAllRead = useCallback(() => {
-    setItems((current) => current.map((item) => ({ ...item, read: true })));
-    toast.success("All notifications marked as read");
+  const fetchNotifications = useCallback(async () => {
+    try {
+      const res = await notificationService.list({ pageSize: 50 });
+      const list = res?.items || (Array.isArray(res) ? res : []);
+      setItems(list);
+      const count = list.filter((n) => !n.read).length;
+      setUnreadCount(count);
+    } catch {
+      // Ignored if user not logged in yet
+    }
   }, []);
 
-  const markRead = useCallback((id) => {
-    setItems((current) =>
-      current.map((item) => (item.id === id ? { ...item, read: true } : item)),
-    );
+  useEffect(() => {
+    fetchNotifications();
+
+    // Poll every 10 seconds for new notifications
+    const interval = setInterval(() => {
+      notificationService
+        .unreadCount()
+        .then((res) => {
+          if (res?.count != null) {
+            setUnreadCount(res.count);
+          }
+        })
+        .catch(() => {});
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [fetchNotifications]);
+
+  const markAllRead = useCallback(async () => {
+    try {
+      await notificationService.markAllRead();
+      setItems((current) => current.map((item) => ({ ...item, read: true })));
+      setUnreadCount(0);
+      toast.success("All notifications marked as read");
+    } catch (err) {
+      setItems((current) => current.map((item) => ({ ...item, read: true })));
+      setUnreadCount(0);
+    }
+  }, []);
+
+  const markRead = useCallback(async (id) => {
+    try {
+      await notificationService.markRead(id);
+    } catch {
+      // Ignore
+    } finally {
+      setItems((current) =>
+        current.map((item) => (item.id === id ? { ...item, read: true } : item)),
+      );
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+    }
   }, []);
 
   const notify = useCallback((notification) => {
@@ -30,14 +68,22 @@ export function NotificationProvider({ children }) {
       { id: Date.now(), read: false, time: "just now", ...notification },
       ...current,
     ]);
+    setUnreadCount((prev) => prev + 1);
     const type = notification.type === "warning" ? "warning" : notification.type;
     const show = toast[type] ?? toast;
     show(notification.title, { description: notification.body });
   }, []);
 
   const value = useMemo(
-    () => ({ items, unreadCount, markRead, markAllRead, notify }),
-    [items, unreadCount, markRead, markAllRead, notify],
+    () => ({
+      items,
+      unreadCount,
+      markRead,
+      markAllRead,
+      notify,
+      refresh: fetchNotifications,
+    }),
+    [items, unreadCount, markRead, markAllRead, notify, fetchNotifications],
   );
 
   return (
@@ -46,3 +92,5 @@ export function NotificationProvider({ children }) {
     </NotificationContext.Provider>
   );
 }
+
+export default NotificationProvider;
