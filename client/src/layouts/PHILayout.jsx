@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import {
   Bell,
   Camera,
@@ -10,6 +11,7 @@ import {
 } from "lucide-react";
 import DashboardLayout from "./DashboardLayout";
 import useNotification from "../hooks/useNotification";
+import phiService from "../services/phiService";
 
 const baseItems = [
   { to: "/phi", label: "Dashboard", icon: LayoutDashboard, end: true },
@@ -24,9 +26,30 @@ const baseItems = [
 
 export default function PHILayout() {
   const { unreadCount } = useNotification();
+  const [pendingReportsCount, setPendingReportsCount] = useState(0);
 
-  // Dynamic notification counter: only increments (1, 2, 3...) when new unread notifications arrive
+  const fetchStats = () => {
+    phiService
+      .reports({ status: "Pending", pageSize: 100 })
+      .then((res) => {
+        const items = res?.data || res?.items || (Array.isArray(res) ? res : []);
+        setPendingReportsCount(items.length);
+      })
+      .catch(() => {});
+  };
+
+  useEffect(() => {
+    fetchStats();
+    const interval = setInterval(fetchStats, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
   const navItems = baseItems.map((item) => {
+    // Show count of reports requiring review
+    if (item.to === "/phi/reports" && pendingReportsCount > 0) {
+      return { ...item, badge: pendingReportsCount };
+    }
+    // Show unread notifications count
     if (item.to === "/phi/notifications" && unreadCount > 0) {
       return { ...item, badge: unreadCount };
     }

@@ -11,7 +11,7 @@ export function NotificationProvider({ children }) {
   const fetchNotifications = useCallback(async () => {
     try {
       const res = await notificationService.list({ pageSize: 50 });
-      const list = res?.items || (Array.isArray(res) ? res : []);
+      const list = res?.data || res?.items || (Array.isArray(res) ? res : []);
       setItems(list);
       const count = list.filter((n) => !n.read).length;
       setUnreadCount(count);
@@ -23,17 +23,10 @@ export function NotificationProvider({ children }) {
   useEffect(() => {
     fetchNotifications();
 
-    // Poll every 10 seconds for new notifications
+    // Poll every 8 seconds for new notifications and live message updates
     const interval = setInterval(() => {
-      notificationService
-        .unreadCount()
-        .then((res) => {
-          if (res?.count != null) {
-            setUnreadCount(res.count);
-          }
-        })
-        .catch(() => {});
-    }, 10000);
+      fetchNotifications();
+    }, 8000);
 
     return () => clearInterval(interval);
   }, [fetchNotifications]);

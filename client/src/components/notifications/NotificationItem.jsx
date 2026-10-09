@@ -1,5 +1,5 @@
 import { AlertTriangle, Bell, CheckCircle2, CloudRain, Info } from "lucide-react";
-import { cn } from "../../utils/helpers";
+import { cn, timeAgo } from "../../utils/helpers";
 
 const ICONS = { success: CheckCircle2, warning: AlertTriangle, info: Info };
 const TINTS = {
@@ -33,7 +33,9 @@ export default function NotificationItem({ notification, onRead }) {
         </div>
         <p className="mt-1 text-sm text-muted-foreground">{body}</p>
       </div>
-      <div className="whitespace-nowrap text-xs text-muted-foreground">{time}</div>
+      <div className="whitespace-nowrap text-xs text-muted-foreground">
+        {time || (notification.createdAt ? timeAgo(notification.createdAt) : "just now")}
+      </div>
     </button>
   );
 }
