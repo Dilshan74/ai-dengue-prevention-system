@@ -1,10 +1,8 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import {
   Pencil,
   UserCheck,
-  ShieldAlert,
-  ArrowRightLeft,
   Mail,
   Phone,
   CreditCard,
@@ -16,14 +14,18 @@ import Button from "../../../components/common/Button";
 import PageHeader from "../../../components/common/PageHeader";
 import useAuth from "../../../hooks/useAuth";
 import citizenService from "../../../services/citizenService";
-import authService from "../../../services/authService";
-import { toast } from "sonner";
+import { ROLE_HOME } from "../../../utils/constants";
 
 export default function Profile() {
-  const { user, login } = useAuth();
+  const { user } = useAuth();
   const [stats, setStats] = useState({ totalReports: 0, pending: 0, resolved: 0 });
   const [profileData, setProfileData] = useState(null);
-  const [switching, setSwitching] = useState(false);
+
+  // If active session is not a citizen, immediately route to their appropriate portal
+  const activeRole = (user?.role || "").toLowerCase();
+  if (activeRole && activeRole !== "citizen") {
+    return <Navigate to={ROLE_HOME[activeRole] || "/login"} replace />;
+  }
 
   useEffect(() => {
     // Fetch stats
@@ -43,43 +45,14 @@ export default function Profile() {
       .catch(() => {});
   }, []);
 
-  const handleSwitchToCitizen = async () => {
-    try {
-      setSwitching(true);
-      toast.info("Switching to Citizen Demo account...");
-      const data = await authService.login({
-        email: "citizen@dengueguard.lk",
-        password: "demo1234",
-        role: "citizen",
-      });
-      login({
-        email: data.email,
-        name: data.name,
-        role: "citizen",
-        token: data.token,
-      });
-      toast.success("Switched to Citizen Demo account!");
-      window.location.reload();
-    } catch (err) {
-      toast.error(err?.response?.data?.message || "Failed to switch account");
-    } finally {
-      setSwitching(false);
-    }
-  };
-
   const STATS = [
     { label: "Reports", value: stats.totalReports, className: "" },
     { label: "Resolved", value: stats.resolved, className: "text-emerald-600" },
     { label: "Pending", value: stats.pending, className: "text-amber-500" },
   ];
 
-  const displayName = profileData?.name || user?.name || "User";
+  const displayName = profileData?.name || user?.name || "Citizen";
   const displayEmail = profileData?.email || user?.email || "";
-  const activeRole = (profileData?.role || user?.role || "").toLowerCase();
-  const isAdminUser = activeRole === "admin" || displayEmail.toLowerCase().includes("admin");
-  const isPhiUser = activeRole === "phi" || displayEmail.toLowerCase().includes("phi");
-  const isNonCitizen = isAdminUser || isPhiUser;
-  const roleTitle = isAdminUser ? "Administrator" : isPhiUser ? "PHI Officer" : "Officer";
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
@@ -87,49 +60,11 @@ export default function Profile() {
         title="My Profile"
         description="Your personal information, community reporting history, and assigned area."
         action={
-          <div className="flex items-center gap-2">
-            {isNonCitizen && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleSwitchToCitizen}
-                disabled={switching}
-                className="text-xs bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-300 hover:bg-amber-500/20"
-              >
-                <ArrowRightLeft className="mr-1.5 h-3.5 w-3.5" /> Switch to Citizen Account
-              </Button>
-            )}
-            <Button as={Link} to="/citizen/profile/edit" size="sm" className="text-xs">
-              <Pencil className="mr-1.5 h-3.5 w-3.5" /> Edit Profile
-            </Button>
-          </div>
+          <Button as={Link} to="/citizen/profile/edit" size="sm" className="text-xs">
+            <Pencil className="mr-1.5 h-3.5 w-3.5" /> Edit Profile
+          </Button>
         }
       />
-
-      {/* Account Role Notice if logged in as Admin or PHI inside Citizen Portal */}
-      {isNonCitizen && (
-        <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-xs text-amber-800 dark:text-amber-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div className="flex items-start gap-2.5">
-            <ShieldAlert className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
-            <div>
-              <p className="font-semibold text-amber-900 dark:text-amber-100 text-sm">
-                You are currently signed in with the {roleTitle} Account ({displayEmail})
-              </p>
-              <p className="text-muted-foreground mt-0.5">
-                The details below belong to <strong>{displayName}</strong>. To view and use the official Citizen profile (<strong>Citizen Demo</strong>), click the switch button.
-              </p>
-            </div>
-          </div>
-          <Button
-            size="sm"
-            onClick={handleSwitchToCitizen}
-            disabled={switching}
-            className="shrink-0 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-xl"
-          >
-            <ArrowRightLeft className="mr-1.5 h-3.5 w-3.5" /> Switch to Citizen
-          </Button>
-        </div>
-      )}
 
       <div className="grid gap-6 lg:grid-cols-[1fr_2fr] items-start">
         {/* Left Profile Card */}
@@ -149,7 +84,7 @@ export default function Profile() {
             <h3 className="text-lg font-bold text-foreground">{displayName}</h3>
             <p className="text-xs text-muted-foreground mt-0.5">{displayEmail}</p>
             <span className="inline-block mt-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-0.5 text-[11px] font-semibold text-primary uppercase tracking-wider">
-              {profileData?.role ? `${profileData.role} account` : "Active Member"}
+              Citizen Member
             </span>
           </div>
 
@@ -164,7 +99,7 @@ export default function Profile() {
             ))}
           </div>
 
-          <div className="space-y-2">
+          <div>
             <Button
               as={Link}
               to="/citizen/profile/edit"
@@ -173,15 +108,6 @@ export default function Profile() {
             >
               <Pencil className="mr-1.5 h-3.5 w-3.5" /> Edit Personal Information
             </Button>
-            {isNonCitizen && (
-              <Button
-                onClick={handleSwitchToCitizen}
-                disabled={switching}
-                className="w-full text-xs rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-semibold"
-              >
-                <ArrowRightLeft className="mr-1.5 h-3.5 w-3.5" /> Switch to Citizen Account
-              </Button>
-            )}
           </div>
         </div>
 

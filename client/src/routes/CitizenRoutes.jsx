@@ -15,7 +15,7 @@ import Settings from "../pages/citizen/Settings/Settings";
 
 /** Citizen route group, spread into <Routes> by AppRoutes. */
 export const citizenRoutes = (
-  <Route element={<ProtectedRoute allow={[ROLES.CITIZEN, ROLES.PHI, ROLES.ADMIN]} />}>
+  <Route element={<ProtectedRoute allow={[ROLES.CITIZEN]} />}>
     <Route path="/citizen" element={<CitizenLayout />}>
       <Route index element={<Dashboard />} />
       <Route path="upload" element={<UploadImage />} />

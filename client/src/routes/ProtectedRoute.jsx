@@ -1,6 +1,7 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import Loader from "../components/common/Loader";
 import useAuth from "../hooks/useAuth";
+import { ROLE_HOME } from "../utils/constants";
 
 /**
  * Guard a route group. `allow` lists the roles permitted to enter; anyone else
@@ -20,6 +21,13 @@ export default function ProtectedRoute({ allow = [] }) {
   const normalizedAllow = allow.map((r) => String(r).toLowerCase());
 
   if (normalizedAllow.length && !normalizedAllow.includes(currentRole)) {
+    // If a non-citizen (e.g. PHI or Admin) tries to access /citizen routes,
+    // seamlessly route them to their own dedicated portal rather than showing citizen pages
+    if (location.pathname.startsWith("/citizen")) {
+      const target = ROLE_HOME[currentRole] || "/unauthorized";
+      return <Navigate to={target} replace />;
+    }
+
     return (
       <Navigate
         to="/unauthorized"

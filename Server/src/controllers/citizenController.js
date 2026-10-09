@@ -194,11 +194,17 @@ export const createComplaint = asyncHandler(async (req, res) => {
 });
 
 export const profile = asyncHandler(async (req, res) => {
+  if (req.user.role !== "citizen") {
+    throw new ApiError(403, "Citizen profile is only accessible to citizen accounts");
+  }
   const { passwordHash, ...rest } = req.user; // eslint-disable-line no-unused-vars
   res.json(rest);
 });
 
 export const updateProfile = asyncHandler(async (req, res) => {
+  if (req.user.role !== "citizen") {
+    throw new ApiError(403, "Citizen profile can only be updated by citizen accounts");
+  }
   const { name, mobile, address, email, nic } = req.body;
   const patch = {};
   if (name) patch.name = name;

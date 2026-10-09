@@ -7,7 +7,6 @@ import {
   ShieldCheck,
   Building2,
   CheckCircle2,
-  ArrowRightLeft,
   Save,
   Loader2,
   BadgeCheck,
@@ -19,13 +18,11 @@ import Button from "../../../components/common/Button";
 import PageHeader from "../../../components/common/PageHeader";
 import useAuth from "../../../hooks/useAuth";
 import phiService from "../../../services/phiService";
-import authService from "../../../services/authService";
 
 export default function Profile() {
   const { user, login } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [switching, setSwitching] = useState(false);
 
   const [values, setValues] = useState({
     name: user?.name || "I. Perera",
@@ -98,30 +95,6 @@ export default function Profile() {
     }
   };
 
-  const handleSwitchToCitizen = async () => {
-    try {
-      setSwitching(true);
-      toast.info("Switching to Citizen Demo account...");
-      const data = await authService.login({
-        email: "citizen@dengueguard.lk",
-        password: "demo1234",
-        role: "citizen",
-      });
-      login({
-        email: data.email,
-        name: data.name,
-        role: "citizen",
-        token: data.token,
-      });
-      toast.success("Switched to Citizen Demo account!");
-      window.location.href = "/citizen/profile";
-    } catch (err) {
-      toast.error(err?.response?.data?.message || "Failed to switch account");
-    } finally {
-      setSwitching(false);
-    }
-  };
-
   const statItems = [
     { label: "Visits", value: stats.visits, className: "" },
     { label: "Resolved", value: stats.resolved, className: "text-emerald-600 dark:text-emerald-400" },
@@ -136,33 +109,22 @@ export default function Profile() {
         title="PHI Profile"
         description="Your inspector credentials, jurisdiction area assignment, and inspection metrics."
         action={
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleSwitchToCitizen}
-              disabled={switching}
-              className="text-xs rounded-xl"
-            >
-              <ArrowRightLeft className="mr-1.5 h-3.5 w-3.5" /> Switch to Citizen Account
-            </Button>
-            <Button
-              size="sm"
-              onClick={submit}
-              disabled={saving || loading}
-              className="text-xs rounded-xl"
-            >
-              {saving ? (
-                <>
-                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="mr-1.5 h-3.5 w-3.5" /> Save Changes
-                </>
-              )}
-            </Button>
-          </div>
+          <Button
+            size="sm"
+            onClick={submit}
+            disabled={saving || loading}
+            className="text-xs rounded-xl"
+          >
+            {saving ? (
+              <>
+                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Saving...
+              </>
+            ) : (
+              <>
+                <Save className="mr-1.5 h-3.5 w-3.5" /> Save Changes
+              </>
+            )}
+          </Button>
         }
       />
 
