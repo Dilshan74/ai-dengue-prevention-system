@@ -21,11 +21,23 @@ function scopedQuery(user) {
 }
 
 export const list = asyncHandler(async (req, res) => {
-  const { status, risk, page = 1, pageSize = 10 } = req.query;
+  const { status, risk, area, startDate, endDate, page = 1, pageSize = 10 } = req.query;
 
   const query = scopedQuery(req.user);
-  if (status) query.status = status;
-  if (risk) query.risk = risk;
+  if (status && status !== "all" && status !== "All statuses") query.status = status;
+  if (risk && risk !== "all" && risk !== "All levels") query.risk = risk;
+  if (area && area !== "all" && area !== "All areas") {
+    query.location = new RegExp(area, "i");
+  }
+  if (startDate || endDate) {
+    query.date = {};
+    if (startDate) query.date.$gte = new Date(startDate);
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      query.date.$lte = end;
+    }
+  }
 
   let items = await Report.find(query).sort({ date: -1 }).lean();
   res.json(paginate(items, { page, pageSize }));
@@ -75,7 +87,25 @@ export const monthly = asyncHandler(async (req, res) => {
 
 export const exportReports = asyncHandler(async (req, res) => {
   const { format } = req.params;
-  const items = await Report.find(scopedQuery(req.user)).lean();
+  const { startDate, endDate, area, status, risk } = req.query;
+
+  const query = scopedQuery(req.user);
+  if (status && status !== "all" && status !== "All statuses") query.status = status;
+  if (risk && risk !== "all" && risk !== "All levels") query.risk = risk;
+  if (area && area !== "all" && area !== "All areas") {
+    query.location = new RegExp(area, "i");
+  }
+  if (startDate || endDate) {
+    query.date = {};
+    if (startDate) query.date.$gte = new Date(startDate);
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      query.date.$lte = end;
+    }
+  }
+
+  const items = await Report.find(query).sort({ date: -1 }).lean();
 
   if (format === "csv") {
     const csv = toCsv(items);
