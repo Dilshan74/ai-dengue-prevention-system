@@ -27,6 +27,7 @@ import { FormField, Input, Select, Textarea } from "../../../components/common/F
 import phiService from "../../../services/phiService";
 import aiService from "../../../services/aiService";
 import { STATUS_TINT, RISK_TINT } from "../../../utils/constants";
+import { resolveImageUrl } from "../../../utils/helpers";
 
 const REJECTION_REASONS = [
   { value: "Not a mosquito breeding site", label: "Not a mosquito breeding site" },
@@ -343,12 +344,16 @@ export default function AIPrediction() {
           <div className="relative aspect-[4/3] rounded-2xl overflow-hidden border border-border/80 bg-slate-900/90 flex items-center justify-center">
             {currentDisplayImage ? (
               <img
-                src={currentDisplayImage}
+                src={resolveImageUrl(currentDisplayImage)}
                 alt="Breeding site inspection"
                 className="w-full h-full object-contain"
                 onError={(e) => {
-                  e.target.style.display = "none";
-                  e.target.nextSibling.style.display = "flex";
+                  if (originalImageUrl && e.target.src !== resolveImageUrl(originalImageUrl)) {
+                    e.target.src = resolveImageUrl(originalImageUrl);
+                  } else {
+                    e.target.style.display = "none";
+                    if (e.target.nextSibling) e.target.nextSibling.style.display = "flex";
+                  }
                 }}
               />
             ) : null}

@@ -53,3 +53,29 @@ export function timeAgo(dateStr) {
   return `${weeks}w ago`;
 }
 
+/**
+ * Resolves an uploaded image path to an absolute URL pointing to the backend server.
+ * Ensures images load reliably without relying on frontend proxy paths.
+ */
+export function resolveImageUrl(path) {
+  if (!path || typeof path !== "string") return "";
+  const trimmed = path.trim();
+  if (!trimmed) return "";
+  if (
+    trimmed.startsWith("http://") ||
+    trimmed.startsWith("https://") ||
+    trimmed.startsWith("data:")
+  ) {
+    return trimmed;
+  }
+  // Blob URLs from recent file picker
+  if (trimmed.startsWith("blob:")) {
+    return trimmed;
+  }
+  const cleanPath = trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
+  const apiBase = import.meta.env.VITE_API_URL || "http://localhost:5050/api";
+  const backendOrigin = apiBase.replace(/\/api\/?$/, "");
+  return `${backendOrigin}${cleanPath}`;
+}
+
+

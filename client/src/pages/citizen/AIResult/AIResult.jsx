@@ -29,6 +29,7 @@ import PageHeader from "../../../components/common/PageHeader";
 import citizenService from "../../../services/citizenService";
 import aiService from "../../../services/aiService";
 import useAuth from "../../../hooks/useAuth";
+import { resolveImageUrl } from "../../../utils/helpers";
 
 function normalizeAnalysis(item) {
   if (!item) return null;
@@ -334,9 +335,12 @@ export default function AIResult() {
       ];
   const reportId = prediction.reportId || prediction.id || "N/A";
 
-  const originalPreview = selectedMeta.imagePreview;
+  const originalPreview =
+    selectedMeta.imagePreview && !selectedMeta.imagePreview.startsWith("blob:")
+      ? selectedMeta.imagePreview
+      : null;
   const annotatedSrc = prediction.annotatedImage || originalPreview;
-  const rawSrc = prediction.originalImage || originalPreview;
+  const rawSrc = prediction.originalImage || prediction.image || originalPreview;
   const displayImage = showAnnotated && annotatedSrc ? annotatedSrc : (rawSrc || originalPreview);
 
   const riskBadge = getRiskBadge(rfRiskLevel);
@@ -502,7 +506,7 @@ export default function AIResult() {
             {historyList.map((item, idx) => {
               const isSelected = selectedPrediction?.id === item.id;
               const badge = getRiskBadge(item.rfRiskLevel);
-              const thumb = item.annotatedImage || item.originalImage || item.imagePreview;
+              const thumb = item.annotatedImage || item.originalImage || item.image || item.imagePreview;
               const hazardLabels = item.detectedObjects?.map((o) => o.label).slice(0, 2).join(", ");
 
               return (
@@ -518,11 +522,16 @@ export default function AIResult() {
                   <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-slate-900/10 border border-border">
                     {thumb ? (
                       <img
-                        src={thumb}
+                        src={resolveImageUrl(thumb)}
                         alt="site"
                         className="h-full w-full object-cover"
                         onError={(e) => {
-                          e.target.style.display = "none";
+                          const fallback = item.originalImage || item.image;
+                          if (fallback && e.target.src !== resolveImageUrl(fallback)) {
+                            e.target.src = resolveImageUrl(fallback);
+                          } else {
+                            e.target.style.display = "none";
+                          }
                         }}
                       />
                     ) : (
@@ -601,9 +610,15 @@ export default function AIResult() {
             <div className="relative flex min-h-[300px] max-h-[420px] items-center justify-center overflow-hidden rounded-xl bg-slate-950/5 border border-border/50">
               {displayImage ? (
                 <img
-                  src={displayImage}
+                  src={resolveImageUrl(displayImage)}
                   alt="Dengue breeding analysis"
                   className="max-h-[420px] w-full rounded-xl object-contain"
+                  onError={(e) => {
+                    const fallback = rawSrc ? resolveImageUrl(rawSrc) : "";
+                    if (fallback && e.target.src !== fallback) {
+                      e.target.src = fallback;
+                    }
+                  }}
                 />
               ) : (
                 <div className="p-8 text-center text-sm text-muted-foreground">

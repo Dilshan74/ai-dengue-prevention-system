@@ -20,6 +20,7 @@ export const citizenRoutes = (
       <Route index element={<Dashboard />} />
       <Route path="upload" element={<UploadImage />} />
       <Route path="ai-result" element={<AIResult />} />
+      <Route path="ai_result" element={<AIResult />} />
       <Route path="track" element={<TrackComplaint />} />
       <Route path="track/:id" element={<ComplaintDetails />} />
       <Route path="map" element={<DengueRiskMap />} />

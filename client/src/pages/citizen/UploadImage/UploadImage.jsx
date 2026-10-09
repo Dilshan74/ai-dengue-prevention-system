@@ -246,11 +246,12 @@ export default function UploadImage() {
 
       const prediction = await aiService.predict(file, payload);
 
+      const serverImg = prediction?.originalImage || prediction?.image || prediction?.annotatedImage;
       const analysisPayload = {
         userId: user?.id,
         userEmail: user?.email,
         prediction,
-        imagePreview: URL.createObjectURL(file),
+        imagePreview: serverImg || URL.createObjectURL(file),
         location: activeLocation,
         description,
         coords:
