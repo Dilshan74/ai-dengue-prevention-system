@@ -127,6 +127,7 @@ export const predict = asyncHandler(async (req, res) => {
     id: nextId("PRED"),
     reportId: req.body.reportId || null,
     userId: req.user?.id || null,
+    userEmail: req.user?.email || null,
     userName: req.user?.name || null,
     image: uploadUrl(req.file.filename),
     location: req.body.location || "Nugegoda, Ward 12",
@@ -146,29 +147,62 @@ export const predict = asyncHandler(async (req, res) => {
 
 export const listPredictions = asyncHandler(async (req, res) => {
   const userId = req.user?.id;
+  const userEmail = req.user?.email;
   const isOfficer = req.user?.role === "phi" || req.user?.role === "admin";
   const all = predictionsStore.all() || [];
-  // Return predictions: officers see all, citizens see their own
+
+  // Return predictions: PHI and Admin officers see all; citizens MUST ONLY see their own
   const list = all
-    .filter((p) => isOfficer || !userId || !p.userId || p.userId === userId)
+    .filter((p) => {
+      if (isOfficer) return true;
+      if (!userId && !userEmail) return false;
+      const matchId = userId && p.userId && String(p.userId) === String(userId);
+      const matchEmail =
+        userEmail &&
+        p.userEmail &&
+        String(p.userEmail).toLowerCase() === String(userEmail).toLowerCase();
+      return Boolean(matchId || matchEmail);
+    })
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
     .slice(0, 50);
+
   res.json(list);
 });
 
 export const getLatestPrediction = asyncHandler(async (req, res) => {
   const userId = req.user?.id;
+  const userEmail = req.user?.email;
   const isOfficer = req.user?.role === "phi" || req.user?.role === "admin";
   const all = predictionsStore.all() || [];
+
   const list = all
-    .filter((p) => isOfficer || !userId || !p.userId || p.userId === userId)
+    .filter((p) => {
+      if (isOfficer) return true;
+      if (!userId && !userEmail) return false;
+      const matchId = userId && p.userId && String(p.userId) === String(userId);
+      const matchEmail =
+        userEmail &&
+        p.userEmail &&
+        String(p.userEmail).toLowerCase() === String(userEmail).toLowerCase();
+      return Boolean(matchId || matchEmail);
+    })
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
   res.json(list[0] || null);
 });
 
 export const getPrediction = asyncHandler(async (req, res) => {
-  const prediction = predictionsStore.find((p) => p.reportId === req.params.reportId);
+  const isOfficer = req.user?.role === "phi" || req.user?.role === "admin";
+  const prediction = predictionsStore.find(
+    (p) => p.reportId === req.params.reportId || p.id === req.params.reportId
+  );
   if (!prediction) throw new ApiError(404, "No prediction found for this report");
+
+  // Non-officers can only view their own
+  if (!isOfficer && prediction.userId && prediction.userId !== req.user?.id) {
+    throw new ApiError(403, "You do not have permission to view this analysis");
+  }
+
   res.json(prediction);
 });
 

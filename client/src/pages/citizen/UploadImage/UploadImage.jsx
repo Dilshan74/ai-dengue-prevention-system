@@ -27,6 +27,7 @@ import { FormField, Input, Label, Select, Textarea } from "../../../components/c
 import ImageUploader from "../../../components/ai/ImageUploader";
 import LocationPicker from "../../../components/maps/LocationPicker";
 import { aiService } from "../../../services/aiService";
+import useAuth from "../../../hooks/useAuth";
 
 const VERIFIED_LOCATIONS = [
   { value: "Nugegoda, Ward 12 (Colombo)", label: "Nugegoda, Ward 12 (Colombo)", lat: 6.8712, lon: 79.8890, rainfall: 125, cases: 980, density: 8, district: "Colombo" },
@@ -62,8 +63,9 @@ const QUICK_DESCRIPTIONS = [
 
 export default function UploadImage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [file, setFile] = useState(null);
-  const [locationText, setLocationText] = useState("");
+  const [locationText, setLocationText] = useState(user?.area || "");
   const [description, setDescription] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
@@ -245,6 +247,8 @@ export default function UploadImage() {
       const prediction = await aiService.predict(file, payload);
 
       const analysisPayload = {
+        userId: user?.id,
+        userEmail: user?.email,
         prediction,
         imagePreview: URL.createObjectURL(file),
         location: activeLocation,

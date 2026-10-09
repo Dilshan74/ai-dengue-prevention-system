@@ -68,6 +68,12 @@ export function AuthProvider({ children }) {
 
   const login = useCallback(({ email, role = ROLES.CITIZEN, name, token, area, ...rest }) => {
     const prev = storage.get(STORAGE_KEYS.user);
+    // If logging in as a different user, clear cached prediction
+    if (prev?.email && prev.email.toLowerCase() !== String(email).toLowerCase()) {
+      try {
+        localStorage.removeItem("dengue_last_prediction");
+      } catch (_) {}
+    }
     const nextUser = {
       ...rest,
       email,
@@ -84,6 +90,9 @@ export function AuthProvider({ children }) {
   const logout = useCallback(() => {
     storage.remove(STORAGE_KEYS.user);
     storage.remove(STORAGE_KEYS.token);
+    try {
+      localStorage.removeItem("dengue_last_prediction");
+    } catch (_) {}
     setUser(null);
   }, []);
 

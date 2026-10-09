@@ -28,6 +28,7 @@ import Button from "../../../components/common/Button";
 import PageHeader from "../../../components/common/PageHeader";
 import citizenService from "../../../services/citizenService";
 import aiService from "../../../services/aiService";
+import useAuth from "../../../hooks/useAuth";
 
 function normalizeAnalysis(item) {
   if (!item) return null;
@@ -98,6 +99,7 @@ function formatDate(dateStr) {
 export default function AIResult() {
   const location = useLocation();
   const navState = location.state || {};
+  const { user } = useAuth();
 
   const [historyList, setHistoryList] = useState([]);
   const [selectedPrediction, setSelectedPrediction] = useState(
@@ -117,7 +119,7 @@ export default function AIResult() {
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
   const [dispatchedReport, setDispatchedReport] = useState(null);
 
-  // Load previous analyses from API, Complaints, and LocalStorage
+  // Load previous analyses for current logged-in citizen only
   useEffect(() => {
     let isMounted = true;
 
@@ -125,7 +127,7 @@ export default function AIResult() {
       setIsLoadingHistory(true);
       const items = [];
 
-      // 1. Fetch from AI predictions history
+      // 1. Fetch from AI predictions history (filtered on backend by user)
       try {
         const historyRes = await aiService.getHistory();
         if (Array.isArray(historyRes) && historyRes.length > 0) {
@@ -135,7 +137,7 @@ export default function AIResult() {
         console.warn("Could not fetch AI predictions history:", e);
       }
 
-      // 2. Fetch from Citizen complaints
+      // 2. Fetch from Citizen complaints (filtered by citizenId)
       try {
         const complaintsRes = await citizenService.complaints({ pageSize: 20 });
         const list = complaintsRes.data || complaintsRes || [];
@@ -146,12 +148,21 @@ export default function AIResult() {
         console.warn("Could not fetch citizen complaints:", e);
       }
 
-      // 3. Check localStorage cached prediction
+      // 3. Check localStorage cached prediction for current user only
       try {
         const cached = localStorage.getItem("dengue_last_prediction");
         if (cached) {
           const parsed = JSON.parse(cached);
-          items.unshift(normalizeAnalysis(parsed));
+          const isUserOwned =
+            Boolean(parsed.userId && user?.id && String(parsed.userId) === String(user.id)) ||
+            Boolean(
+              parsed.userEmail &&
+                user?.email &&
+                String(parsed.userEmail).toLowerCase() === String(user.email).toLowerCase()
+            );
+          if (isUserOwned) {
+            items.unshift(normalizeAnalysis(parsed));
+          }
         }
       } catch (e) {}
 
@@ -186,6 +197,8 @@ export default function AIResult() {
           selectAnalysis(uniqueItems[0] || normalizeAnalysis(navState));
         } else if (uniqueItems.length > 0) {
           selectAnalysis(uniqueItems[0]);
+        } else {
+          setSelectedPrediction(null);
         }
         setIsLoadingHistory(false);
       }
@@ -447,15 +460,38 @@ export default function AIResult() {
         </div>
       </div>
 
-      {/* PREVIOUS ANALYSES SELECTOR BAR */}
-      {historyList.length > 0 && (
-        <div className="mb-6 rounded-2xl border border-border bg-card p-4 soft-shadow">
-          <div className="mb-3 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <History className="h-4 w-4 text-primary" />
-              <h3 className="text-xs font-bold uppercase tracking-wider text-foreground">
-                Previous Analyses ({historyList.length})
-              </h3>
+      {/* Loading or Empty State or Assessment View */}
+      {isLoadingHistory ? (
+        <div className="flex h-72 flex-col items-center justify-center gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-sm font-medium text-muted-foreground">Loading your risk assessments...</p>
+        </div>
+      ) : !selectedPrediction ? (
+        <div className="soft-shadow rounded-3xl border border-dashed border-border bg-card p-12 text-center max-w-xl mx-auto my-12">
+          <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-primary/10 text-primary mb-4">
+            <Cpu className="h-8 w-8" />
+          </div>
+          <h2 className="text-xl font-bold text-foreground">No Submissions Found</h2>
+          <p className="mt-2 text-sm text-muted-foreground max-w-md mx-auto">
+            You haven't uploaded or analyzed any breeding sites yet. Upload a photo of a suspected mosquito breeding site to run our automated AI &amp; ML dengue risk assessment.
+          </p>
+          <div className="mt-6">
+            <Button as={Link} to="/citizen/upload" className="rounded-xl px-5">
+              <Upload className="mr-2 h-4 w-4" /> Upload New Photo
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* PREVIOUS ANALYSES SELECTOR BAR */}
+          {historyList.length > 0 && (
+            <div className="mb-6 rounded-2xl border border-border bg-card p-4 soft-shadow">
+              <div className="mb-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <History className="h-4 w-4 text-primary" />
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-foreground">
+                    Previous Analyses ({historyList.length})
+                  </h3>
             </div>
             <span className="text-[11px] text-muted-foreground">
               Click any past analysis to view details &amp; risk factors
@@ -822,6 +858,8 @@ export default function AIResult() {
           </div>
         </div>
       </div>
+        </>
+      )}
     </>
   );
 }
