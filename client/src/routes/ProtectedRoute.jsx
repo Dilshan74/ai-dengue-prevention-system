@@ -7,7 +7,7 @@ import useAuth from "../hooks/useAuth";
  * is redirected to /login (unauthenticated) or /unauthorized (wrong role).
  */
 export default function ProtectedRoute({ allow = [] }) {
-  const { isAuthenticated, role, loading } = useAuth();
+  const { isAuthenticated, role, loading, user } = useAuth();
   const location = useLocation();
 
   if (loading) return <Loader fullscreen />;
@@ -16,8 +16,22 @@ export default function ProtectedRoute({ allow = [] }) {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   }
 
-  if (allow.length && !allow.includes(role)) {
-    return <Navigate to="/unauthorized" replace />;
+  const currentRole = (role || user?.role || "citizen").toLowerCase();
+  const normalizedAllow = allow.map((r) => String(r).toLowerCase());
+
+  if (normalizedAllow.length && !normalizedAllow.includes(currentRole)) {
+    return (
+      <Navigate
+        to="/unauthorized"
+        replace
+        state={{
+          from: location.pathname,
+          currentRole,
+          userName: user?.name,
+          requiredRoles: allow,
+        }}
+      />
+    );
   }
 
   return <Outlet />;

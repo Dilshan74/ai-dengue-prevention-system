@@ -361,25 +361,167 @@ export const deleteArea = asyncHandler(async (req, res) => {
 
 // ---- Statistics & Settings ----
 
+const SRI_LANKA_DISTRICTS = [
+  "Colombo", "Gampaha", "Kalutara", "Kandy", "Matale", "Nuwara Eliya",
+  "Galle", "Matara", "Hambantota", "Jaffna", "Kilinochchi", "Mannar",
+  "Vavuniya", "Mullaitivu", "Batticaloa", "Ampara", "Trincomalee",
+  "Kurunegala", "Puttalam", "Anuradhapura", "Polonnaruwa", "Badulla",
+  "Monaragala", "Ratnapura", "Kegalle",
+];
+
+const AREA_DISTRICT_MAP = {
+  nugegoda: "Colombo",
+  moratuwa: "Colombo",
+  maharagama: "Colombo",
+  dehiwala: "Colombo",
+  kotte: "Colombo",
+  rajagiriya: "Colombo",
+  kollupitiya: "Colombo",
+  cinnamon: "Colombo",
+  ratmalana: "Colombo",
+  borupana: "Colombo",
+  battaramulla: "Colombo",
+  homagama: "Colombo",
+  kaduwela: "Colombo",
+  kelaniya: "Gampaha",
+  negombo: "Gampaha",
+  kadawatha: "Gampaha",
+  wattala: "Gampaha",
+  jaela: "Gampaha",
+  "ja-ela": "Gampaha",
+  panadura: "Kalutara",
+  horana: "Kalutara",
+  beruwala: "Kalutara",
+  peradeniya: "Kandy",
+  karapitiya: "Galle",
+  hikkaduwa: "Galle",
+  unawatuna: "Galle",
+  akuressa: "Matara",
+  weligama: "Matara",
+  kurunegala: "Kurunegala",
+  ratnapura: "Ratnapura",
+};
+
+function detectDistrict(report) {
+  const text = `${report.location || ""} ${report.address || ""}`.toLowerCase();
+  for (const d of SRI_LANKA_DISTRICTS) {
+    if (text.includes(d.toLowerCase())) return d;
+  }
+  for (const [sub, d] of Object.entries(AREA_DISTRICT_MAP)) {
+    if (text.includes(sub)) return d;
+  }
+  const lat = Number(report.lat);
+  const lng = Number(report.lng);
+  if (!isNaN(lat) && !isNaN(lng) && lat && lng) {
+    if (lat >= 6.75 && lat <= 7.05 && lng >= 79.80 && lng <= 80.05) return "Colombo";
+    if (lat >= 5.95 && lat <= 6.40 && lng >= 80.10 && lng <= 80.45) return "Galle";
+    if (lat >= 7.00 && lat <= 7.30 && lng >= 79.80 && lng <= 80.20) return "Gampaha";
+    if (lat >= 6.45 && lat <= 6.75 && lng >= 79.90 && lng <= 80.25) return "Kalutara";
+    if (lat >= 7.15 && lat <= 7.45 && lng >= 80.50 && lng <= 80.80) return "Kandy";
+  }
+  const coords = text.match(/([0-9]+\.[0-9]+)\s*,\s*([0-9]+\.[0-9]+)/);
+  if (coords) {
+    const cLat = parseFloat(coords[1]);
+    const cLng = parseFloat(coords[2]);
+    if (cLat >= 6.75 && cLat <= 7.05 && cLng >= 79.80 && cLng <= 80.05) return "Colombo";
+    if (cLat >= 5.95 && cLat <= 6.40 && cLng >= 80.10 && cLng <= 80.45) return "Galle";
+  }
+  return "Colombo";
+}
+
 export const statistics = asyncHandler(async (req, res) => {
   const reports = await Report.find().lean();
 
+  // 1. Monthly Reports timeline (rolling 7 months ending at current month)
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const now = new Date();
+  const currentMonthIdx = now.getMonth();
+
+  const timelineMonths = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), currentMonthIdx - i, 1);
+    timelineMonths.push(monthNames[d.getMonth()]);
+  }
+
   const byMonth = {};
-  reports.forEach((r) => {
-    const month = new Date(r.date).toLocaleString("en-US", { month: "short" });
-    byMonth[month] = byMonth[month] || { name: month, reports: 0, resolved: 0 };
-    byMonth[month].reports += 1;
-    if (r.status === "Resolved") byMonth[month].resolved += 1;
+  timelineMonths.forEach((m) => {
+    byMonth[m] = { name: m, reports: 0, resolved: 0 };
   });
 
-  const riskDistribution = ["High", "Medium", "Low"].map((risk) => ({
-    name: risk,
-    value: reports.filter((r) => r.risk === risk).length,
-  }));
+  reports.forEach((r) => {
+    if (!r.date) return;
+    const m = new Date(r.date).toLocaleString("en-US", { month: "short" });
+    if (!byMonth[m]) {
+      byMonth[m] = { name: m, reports: 0, resolved: 0 };
+    }
+    byMonth[m].reports += 1;
+    if (r.status === "Resolved") byMonth[m].resolved += 1;
+  });
+
+  // 2. Reports by District
+  const districtCounts = {};
+  reports.forEach((r) => {
+    const district = detectDistrict(r);
+    districtCounts[district] = (districtCounts[district] || 0) + 1;
+  });
+
+  const defaultDistricts = ["Colombo", "Gampaha", "Kalutara", "Kandy", "Galle", "Matara"];
+  const sortedDistricts = Object.entries(districtCounts)
+    .sort((a, b) => b[1] - a[1])
+    .map(([name, value]) => ({ name, value }));
+
+  const reportsByDistrict = [...sortedDistricts];
+  defaultDistricts.forEach((name) => {
+    if (!reportsByDistrict.some((d) => d.name === name)) {
+      reportsByDistrict.push({ name, value: 0 });
+    }
+  });
+
+  // 3. Risk Distribution
+  const riskDistribution = [
+    {
+      name: "High",
+      value: reports.filter((r) => r.risk === "High").length,
+      color: "var(--destructive)",
+    },
+    {
+      name: "Medium",
+      value: reports.filter((r) => r.risk === "Medium").length,
+      color: "var(--warning)",
+    },
+    {
+      name: "Low",
+      value: reports.filter((r) => r.risk === "Low").length,
+      color: "var(--success)",
+    },
+  ];
+
+  // 4. Report Status Distribution
+  const reportStatusSplit = [
+    {
+      name: "Resolved",
+      value: reports.filter((r) => r.status === "Resolved").length,
+      color: "var(--success)",
+    },
+    {
+      name: "In progress",
+      value: reports.filter((r) =>
+        ["Pending", "Under Review", "Accepted", "Inspection Completed", "Escalated"].includes(r.status)
+      ).length,
+      color: "var(--warning)",
+    },
+    {
+      name: "Rejected",
+      value: reports.filter((r) => r.status === "Rejected").length,
+      color: "var(--destructive)",
+    },
+  ];
 
   res.json({
     monthly: Object.values(byMonth),
+    reportsByDistrict: reportsByDistrict.slice(0, 6),
     riskDistribution,
+    reportStatusSplit,
     totalReports: reports.length,
   });
 });

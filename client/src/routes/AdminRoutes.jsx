@@ -25,6 +25,8 @@ export const adminRoutes = (
       <Route path="statistics" element={<Statistics />} />
       <Route path="ai-accuracy" element={<AIAccuracy />} />
       <Route path="monthly-reports" element={<MonthlyReports />} />
+      <Route path="monthly reports" element={<MonthlyReports />} />
+      <Route path="monthly%20reports" element={<MonthlyReports />} />
       <Route path="notifications" element={<Notifications />} />
       <Route path="settings" element={<Settings />} />
     </Route>

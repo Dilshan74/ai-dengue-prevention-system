@@ -14,7 +14,7 @@ export default function ReportsBarChart({
       <BarChart data={data}>
         <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
         <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-        <YAxis tick={{ fontSize: 12 }} />
+        <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
         <Tooltip contentStyle={theme.tooltipStyle} />
         <Bar dataKey={dataKey} fill={color} radius={[8, 8, 0, 0]} />
       </BarChart>

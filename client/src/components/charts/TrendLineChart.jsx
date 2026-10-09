@@ -17,7 +17,7 @@ export default function TrendLineChart({
       <LineChart data={data}>
         <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
         <XAxis dataKey={xKey} tick={{ fontSize: 12 }} />
-        <YAxis domain={domain} tick={{ fontSize: 12 }} />
+        <YAxis domain={domain} tick={{ fontSize: 12 }} allowDecimals={false} />
         <Tooltip contentStyle={theme.tooltipStyle} />
         <Line
           type="monotone"

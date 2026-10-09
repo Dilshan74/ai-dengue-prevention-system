@@ -75,7 +75,11 @@ export default function Profile() {
 
   const displayName = profileData?.name || user?.name || "User";
   const displayEmail = profileData?.email || user?.email || "";
-  const isPhiUser = displayEmail.includes("phi") || profileData?.role === "phi" || user?.role === "phi";
+  const activeRole = (profileData?.role || user?.role || "").toLowerCase();
+  const isAdminUser = activeRole === "admin" || displayEmail.toLowerCase().includes("admin");
+  const isPhiUser = activeRole === "phi" || displayEmail.toLowerCase().includes("phi");
+  const isNonCitizen = isAdminUser || isPhiUser;
+  const roleTitle = isAdminUser ? "Administrator" : isPhiUser ? "PHI Officer" : "Officer";
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
@@ -84,13 +88,13 @@ export default function Profile() {
         description="Your personal information, community reporting history, and assigned area."
         action={
           <div className="flex items-center gap-2">
-            {isPhiUser && (
+            {isNonCitizen && (
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleSwitchToCitizen}
                 disabled={switching}
-                className="text-xs"
+                className="text-xs bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-300 hover:bg-amber-500/20"
               >
                 <ArrowRightLeft className="mr-1.5 h-3.5 w-3.5" /> Switch to Citizen Account
               </Button>
@@ -102,17 +106,17 @@ export default function Profile() {
         }
       />
 
-      {/* Account Role Notice if logged in as PHI inside Citizen Portal */}
-      {isPhiUser && (
+      {/* Account Role Notice if logged in as Admin or PHI inside Citizen Portal */}
+      {isNonCitizen && (
         <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-xs text-amber-800 dark:text-amber-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="flex items-start gap-2.5">
             <ShieldAlert className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
             <div>
               <p className="font-semibold text-amber-900 dark:text-amber-100 text-sm">
-                You are currently logged in with the PHI Officer Account ({displayEmail})
+                You are currently signed in with the {roleTitle} Account ({displayEmail})
               </p>
               <p className="text-muted-foreground mt-0.5">
-                These are the details for Public Health Inspector <strong>I. Perera</strong>. To view or test with the Citizen account (Citizen Demo), click the switch button.
+                The details below belong to <strong>{displayName}</strong>. To view and use the official Citizen profile (<strong>Citizen Demo</strong>), click the switch button.
               </p>
             </div>
           </div>
@@ -122,7 +126,7 @@ export default function Profile() {
             disabled={switching}
             className="shrink-0 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-xl"
           >
-            Switch to Citizen
+            <ArrowRightLeft className="mr-1.5 h-3.5 w-3.5" /> Switch to Citizen
           </Button>
         </div>
       )}
@@ -160,14 +164,25 @@ export default function Profile() {
             ))}
           </div>
 
-          <Button
-            as={Link}
-            to="/citizen/profile/edit"
-            variant="outline"
-            className="w-full text-xs rounded-xl"
-          >
-            <Pencil className="mr-1.5 h-3.5 w-3.5" /> Edit Personal Information
-          </Button>
+          <div className="space-y-2">
+            <Button
+              as={Link}
+              to="/citizen/profile/edit"
+              variant="outline"
+              className="w-full text-xs rounded-xl"
+            >
+              <Pencil className="mr-1.5 h-3.5 w-3.5" /> Edit Personal Information
+            </Button>
+            {isNonCitizen && (
+              <Button
+                onClick={handleSwitchToCitizen}
+                disabled={switching}
+                className="w-full text-xs rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-semibold"
+              >
+                <ArrowRightLeft className="mr-1.5 h-3.5 w-3.5" /> Switch to Citizen Account
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Right Details Grid */}

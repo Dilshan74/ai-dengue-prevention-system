@@ -17,7 +17,7 @@ const ROLE_TABS = [
 
 export default function Login() {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, logout } = useAuth();
   const [role, setRole] = useState(ROLES.CITIZEN);
   const [values, setValues] = useState({ email: "citizen@dengueguard.lk", password: "demo1234" });
   const [errors, setErrors] = useState({});
@@ -25,7 +25,8 @@ export default function Login() {
 
   const setRoleAndEmail = (nextRole) => {
     setRole(nextRole);
-    setValues((current) => ({ ...current, email: `${nextRole}@dengueguard.lk` }));
+    setValues({ email: `${nextRole}@dengueguard.lk`, password: "demo1234" });
+    setErrors({});
   };
 
   const onChange = (field) => (event) =>
