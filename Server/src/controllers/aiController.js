@@ -126,6 +126,8 @@ export const predict = asyncHandler(async (req, res) => {
   const prediction = {
     id: nextId("PRED"),
     reportId: req.body.reportId || null,
+    userId: req.user?.id || null,
+    userName: req.user?.name || null,
     image: uploadUrl(req.file.filename),
     location: req.body.location || "Nugegoda, Ward 12",
     ...result,
@@ -140,6 +142,28 @@ export const predict = asyncHandler(async (req, res) => {
   }
 
   res.json(prediction);
+});
+
+export const listPredictions = asyncHandler(async (req, res) => {
+  const userId = req.user?.id;
+  const isOfficer = req.user?.role === "phi" || req.user?.role === "admin";
+  const all = predictionsStore.all() || [];
+  // Return predictions: officers see all, citizens see their own
+  const list = all
+    .filter((p) => isOfficer || !userId || !p.userId || p.userId === userId)
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    .slice(0, 50);
+  res.json(list);
+});
+
+export const getLatestPrediction = asyncHandler(async (req, res) => {
+  const userId = req.user?.id;
+  const isOfficer = req.user?.role === "phi" || req.user?.role === "admin";
+  const all = predictionsStore.all() || [];
+  const list = all
+    .filter((p) => isOfficer || !userId || !p.userId || p.userId === userId)
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  res.json(list[0] || null);
 });
 
 export const getPrediction = asyncHandler(async (req, res) => {

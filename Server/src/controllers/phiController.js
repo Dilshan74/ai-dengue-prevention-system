@@ -113,12 +113,34 @@ export const acceptReport = asyncHandler(async (req, res) => {
   const report = await Report.findOne({ id: req.params.id }).lean();
   if (!report) throw new ApiError(404, "Report not found");
 
+  const comments = req.body?.comments || req.body?.notes || "";
   const next = {
-    ...addHistory(report, "Accepted", req.body?.comments),
+    ...addHistory(report, "Accepted", comments),
     phi: req.user.name,
     phiId: req.user.id,
   };
   const updated = await Report.findOneAndUpdate({ id: report.id }, next, { new: true }).lean();
+
+  const visitDate = req.body?.scheduledDate || req.body?.visitDate;
+  if (visitDate) {
+    await Visit.create({
+      id: nextId("V"),
+      reportId: report.id,
+      phiId: req.user.id,
+      location: report.location || report.address || "Inspection Site",
+      scheduledDate: new Date(visitDate),
+      status: "Scheduled",
+      checklist: {
+        waterPresent: false,
+        larvaeFound: false,
+        areaCleaned: false,
+        chemicalApplied: false,
+        publicEducated: false,
+      },
+      photos: [],
+      notes: comments,
+    });
+  }
 
   await Notification.create({
     id: nextId("N"),
@@ -126,7 +148,7 @@ export const acceptReport = asyncHandler(async (req, res) => {
     role: "citizen",
     type: "success",
     title: "Report Accepted",
-    body: `${report.id} was accepted by PHI ${req.user.name}.`,
+    body: `${report.id} was accepted by PHI ${req.user.name}.${visitDate ? ` Field inspection scheduled on ${new Date(visitDate).toLocaleDateString()}.` : ""}`,
     read: false,
     createdAt: new Date(),
   });
@@ -138,8 +160,9 @@ export const rejectReport = asyncHandler(async (req, res) => {
   const report = await Report.findOne({ id: req.params.id }).lean();
   if (!report) throw new ApiError(404, "Report not found");
 
+  const reasonStr = req.body?.reason ? `${req.body.reason}${req.body?.comments ? ` — ${req.body.comments}` : ""}` : (req.body?.comments || "No reason given");
   const next = {
-    ...addHistory(report, "Rejected", req.body?.comments),
+    ...addHistory(report, "Rejected", reasonStr),
     phi: req.user.name,
     phiId: req.user.id,
   };
@@ -151,7 +174,7 @@ export const rejectReport = asyncHandler(async (req, res) => {
     role: "citizen",
     type: "warning",
     title: "Report Rejected",
-    body: `${report.id} was rejected: ${req.body?.comments || "No reason given"}`,
+    body: `${report.id} was rejected: ${reasonStr}`,
     read: false,
     createdAt: new Date(),
   });

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { MapPin } from "lucide-react";
+import { MapPin, Search, RefreshCw, XCircle } from "lucide-react";
 import GoogleMap, { PIN_COLORS } from "./GoogleMap";
 import MapLegend from "./MapLegend";
 import Loader from "../common/Loader";
@@ -8,17 +8,22 @@ import mapService from "../../services/mapService";
 import { cn } from "../../utils/helpers";
 
 /**
- * Dengue Risk map populated from NDCU data.
+ * Dengue Risk map populated from NDCU data with live filtering,
+ * search sync, interactive markers, and district grouping.
  */
 export default function DengueHotspotMap({
   compact = false,
   className,
   onDataLoaded,
+  searchQuery = "",
+  selectedRisk = "all",
+  onClearFilters,
 }) {
   const [riskData, setRiskData] = useState([]);
   const [lastUpdated, setLastUpdated] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [activeDistrictId, setActiveDistrictId] = useState(null);
 
   const fetchData = async (cancelled = false) => {
     try {
@@ -33,7 +38,6 @@ export default function DengueHotspotMap({
     } catch (err) {
       if (!cancelled) {
         console.error("Failed to fetch dengue risk data:", err);
-        // Do not erase existing valid data if fetch fails
         if (riskData.length === 0) {
           setError("Unable to load dengue risk locations. Please try again.");
         }
@@ -47,11 +51,8 @@ export default function DengueHotspotMap({
 
   useEffect(() => {
     let cancelled = false;
-    
-    // Initial fetch
     fetchData(cancelled);
 
-    // Refresh every 5 minutes (300,000 ms)
     const intervalId = setInterval(() => {
       fetchData(cancelled);
     }, 300000);
@@ -60,35 +61,67 @@ export default function DengueHotspotMap({
       cancelled = true;
       clearInterval(intervalId);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /* Map the risk data objects to the shape expected by <GoogleMap>. */
-  const markers = useMemo(
-    () =>
-      riskData
-        .filter((r) => r.latitude != null && r.longitude != null)
-        .map((r) => {
-          // Map backend risk levels to PIN_COLORS keys
-          const riskKey = r.riskLevel === 'CRITICAL' ? 'Critical' : 
-                          r.riskLevel === 'HIGH' ? 'High' : 
-                          r.riskLevel === 'MODERATE' ? 'Moderate' : 
-                          r.riskLevel === 'LOW' ? 'Low' : 'Minimal';
-          return {
-            id: r._id || `${r.locationName}-${r.district}`,
-            lat: r.latitude,
-            lng: r.longitude,
-            colorKey: riskKey,
-            title: r.locationName,
-            data: r,
-          };
-        }),
-    [riskData],
-  );
+  /**
+   * Filter risk data based on searchQuery and selectedRisk level.
+   */
+  const filteredData = useMemo(() => {
+    const q = (searchQuery || "").trim().toLowerCase();
+    const rFilter = (selectedRisk || "all").toUpperCase();
 
-  /* Auto-centre the map if we have markers. */
+    return riskData.filter((r) => {
+      const name = (r.locationName || "").toLowerCase();
+      const district = (r.district || "").toLowerCase();
+      const matchesSearch = !q || name.includes(q) || district.includes(q);
+
+      // Support both CRITICAL, HIGH, MODERATE, LOW, MINIMAL
+      const level = (r.riskLevel || "").toUpperCase();
+      let matchesRisk = true;
+      if (rFilter !== "ALL") {
+        if (rFilter === "HIGH") {
+          matchesRisk = level === "HIGH" || level === "CRITICAL";
+        } else if (rFilter === "MEDIUM" || rFilter === "MODERATE") {
+          matchesRisk = level === "MODERATE" || level === "MEDIUM";
+        } else {
+          matchesRisk = level === rFilter;
+        }
+      }
+
+      return matchesSearch && matchesRisk;
+    });
+  }, [riskData, searchQuery, selectedRisk]);
+
+  /** Map filtered risk data objects to marker format. */
+  const markers = useMemo(() => {
+    return filteredData
+      .filter((r) => r.latitude != null && r.longitude != null)
+      .map((r) => {
+        const riskKey =
+          r.riskLevel === "CRITICAL"
+            ? "Critical"
+            : r.riskLevel === "HIGH"
+            ? "High"
+            : r.riskLevel === "MODERATE"
+            ? "Moderate"
+            : r.riskLevel === "LOW"
+            ? "Low"
+            : "Minimal";
+
+        return {
+          id: r._id || `${r.locationName}-${r.district}`,
+          lat: r.latitude,
+          lng: r.longitude,
+          colorKey: riskKey,
+          title: r.locationName,
+          data: r,
+        };
+      });
+  }, [filteredData]);
+
+  /** Calculate map center based on filtered markers. */
   const center = useMemo(() => {
-    if (!markers.length) return undefined; // use default (Sri Lanka)
+    if (!markers.length) return undefined;
     const avgLat = markers.reduce((sum, m) => sum + m.lat, 0) / markers.length;
     const avgLng = markers.reduce((sum, m) => sum + m.lng, 0) / markers.length;
     return { lat: avgLat, lng: avgLng };
@@ -100,96 +133,9 @@ export default function DengueHotspotMap({
     return latest;
   }, null);
 
-  /* Render Info Window content for a selected marker. */
-  const renderInfoWindow = (marker) => {
-    const r = marker.data;
-    if (!r) return null;
-
-    const formattedReportDate = r.reportDate ? new Date(r.reportDate).toLocaleDateString("en-GB", { day: 'numeric', month: 'short', year: 'numeric' }) : 'Unknown';
-    const formattedLastUpdated = r.lastUpdated ? new Date(r.lastUpdated).toLocaleDateString("en-GB", { day: 'numeric', month: 'short', year: 'numeric' }) : 'Unknown';
-
-    return (
-      <div className="map-info-window" style={{ minWidth: 220 }}>
-        <h4 style={{ margin: "0 0 6px", fontSize: 15, fontWeight: 600 }}>
-          Dengue Risk
-        </h4>
-        <table style={{ fontSize: 12, lineHeight: 1.5, borderCollapse: "collapse", width: '100%' }}>
-          <tbody>
-            <tr>
-              <td style={{ fontWeight: 500, paddingRight: 10, color: "#64748b" }}>Location</td>
-              <td>{r.locationName}</td>
-            </tr>
-            <tr>
-              <td style={{ fontWeight: 500, paddingRight: 10, color: "#64748b" }}>District</td>
-              <td>{r.district || r.locationName}</td>
-            </tr>
-            <tr><td colSpan="2"><hr style={{ margin: '4px 0', borderColor: '#e2e8f0' }}/></td></tr>
-            <tr>
-              <td style={{ fontWeight: 500, paddingRight: 10, color: "#64748b" }}>Current Cases</td>
-              <td style={{ fontWeight: 600 }}>{r.currentCases ?? 'N/A'}</td>
-            </tr>
-            <tr>
-              <td style={{ fontWeight: 500, paddingRight: 10, color: "#64748b" }}>Previous Cases</td>
-              <td>{r.previousCases ?? 'N/A'}</td>
-            </tr>
-            <tr>
-              <td style={{ fontWeight: 500, paddingRight: 10, color: "#64748b" }}>Trend</td>
-              <td style={{ 
-                color: r.trend === 'INCREASING' ? '#ef4444' : r.trend === 'DECREASING' ? '#22c55e' : '#64748b',
-                fontWeight: 600 
-              }}>
-                {r.trend === 'INCREASING' ? 'Increasing ↑' : r.trend === 'DECREASING' ? 'Decreasing ↓' : 'Stable -'}
-              </td>
-            </tr>
-            <tr><td colSpan="2"><hr style={{ margin: '4px 0', borderColor: '#e2e8f0' }}/></td></tr>
-            <tr>
-              <td style={{ fontWeight: 500, paddingRight: 10, color: "#64748b" }}>Calculated Risk</td>
-              <td>
-                <span
-                  style={{
-                    display: "inline-block",
-                    padding: "1px 8px",
-                    borderRadius: 9999,
-                    fontSize: 11,
-                    fontWeight: 600,
-                    color: "#fff",
-                    background:
-                      r.riskLevel === "CRITICAL" ? "#ef4444" :
-                      r.riskLevel === "HIGH" ? "#f97316" :
-                      r.riskLevel === "MODERATE" ? "#eab308" : 
-                      r.riskLevel === "LOW" ? "#22c55e" : "#94a3b8",
-                  }}
-                >
-                  {r.riskLevel} ({r.riskScore}%)
-                </span>
-              </td>
-            </tr>
-            {r.officialRisk && r.officialRisk !== 'NONE' && (
-              <tr>
-                <td style={{ fontWeight: 500, paddingRight: 10, color: "#64748b" }}>Official NDCU Risk</td>
-                <td style={{ fontWeight: 600, color: '#dc2626' }}>{r.officialRisk}</td>
-              </tr>
-            )}
-            <tr><td colSpan="2"><hr style={{ margin: '4px 0', borderColor: '#e2e8f0' }}/></td></tr>
-            <tr>
-              <td style={{ fontWeight: 500, paddingRight: 10, color: "#64748b" }}>Source</td>
-              <td>{r.source || 'NDCU'}</td>
-            </tr>
-            <tr>
-              <td style={{ fontWeight: 500, paddingRight: 10, color: "#64748b" }}>Report Date</td>
-              <td>{formattedReportDate}</td>
-            </tr>
-            <tr>
-              <td style={{ fontWeight: 500, paddingRight: 10, color: "#64748b" }}>Last Updated</td>
-              <td>{formattedLastUpdated}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    );
+  const handleSelectDistrict = (item) => {
+    setActiveDistrictId(item._id || item.locationName);
   };
-
-  /* --- Render ----------------------------------------------------------- */
 
   if (loading && riskData.length === 0) return <Loader label="Loading dengue risk data…" />;
 
@@ -203,61 +149,144 @@ export default function DengueHotspotMap({
     );
   }
 
+  const hasActiveFilters = Boolean(searchQuery.trim() || (selectedRisk && selectedRisk !== "all"));
+
   return (
-    <div className={cn("space-y-0", className)}>
-      {riskData.length === 0 ? (
-        <EmptyState
-          icon={MapPin}
-          title="No dengue risk data available"
-          description="Awaiting synchronization with NDCU public reports."
-        />
-      ) : (
-        <GoogleMap
-          center={center}
-          zoom={markers.length === 1 ? 14 : 7} // Zoom out slightly for district level
-          markers={markers}
-          renderInfoWindow={renderInfoWindow}
-          className={compact ? "h-72" : "h-[520px]"}
-        />
+    <div className={cn("space-y-4", className)}>
+      {/* Active Filter Status Bar */}
+      {hasActiveFilters && (
+        <div className="flex items-center justify-between rounded-xl border border-primary/20 bg-primary/5 px-4 py-2 text-xs">
+          <span className="text-foreground">
+            Showing <strong>{filteredData.length}</strong> of {riskData.length} districts
+            {searchQuery && <> matching &quot;<strong>{searchQuery}</strong>&quot;</>}
+            {selectedRisk !== "all" && <> with risk: <strong>{selectedRisk}</strong></>}
+          </span>
+          {onClearFilters && (
+            <button
+              onClick={onClearFilters}
+              className="inline-flex items-center gap-1 font-semibold text-primary hover:underline cursor-pointer"
+            >
+              <RefreshCw className="h-3 w-3" /> Reset Filters
+            </button>
+          )}
+        </div>
       )}
 
-      {/* Dynamic Map Legend replacing the static legend */}
+      {/* Main Map */}
+      <GoogleMap
+        center={center}
+        zoom={markers.length === 1 ? 12 : 8}
+        markers={markers}
+        className={compact ? "h-72" : "h-[500px]"}
+      />
+
+      {/* Map Legend */}
       <MapLegend
         lastUpdated={lastUpdated}
         source={riskData.find((record) => record.source)?.source || "NDCU"}
         sourceUrl={latestSourceRecord?.reportUrl}
       />
 
-      {/* Districts Grouped by Risk Level */}
-      {riskData.length > 0 && (
+      {/* Filtered Districts Grouped by Risk Level */}
+      {filteredData.length > 0 ? (
         <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-          {['CRITICAL', 'HIGH', 'MODERATE', 'LOW', 'MINIMAL'].map((level) => {
-            const districtsInLevel = riskData.filter((r) => r.riskLevel === level);
+          {["CRITICAL", "HIGH", "MODERATE", "LOW", "MINIMAL"].map((level) => {
+            const districtsInLevel = filteredData.filter((r) => r.riskLevel === level);
             if (districtsInLevel.length === 0) return null;
-            
+
             const colorMap = {
-              CRITICAL: { bg: 'bg-red-100/50', text: 'text-red-700', border: 'border-red-200' },
-              HIGH: { bg: 'bg-orange-100/50', text: 'text-orange-700', border: 'border-orange-200' },
-              MODERATE: { bg: 'bg-yellow-100/50', text: 'text-yellow-700', border: 'border-yellow-200' },
-              LOW: { bg: 'bg-green-100/50', text: 'text-green-700', border: 'border-green-200' },
-              MINIMAL: { bg: 'bg-slate-100/50', text: 'text-slate-700', border: 'border-slate-200' }
+              CRITICAL: {
+                bg: "bg-red-500/10 border-red-500/25",
+                text: "text-red-700 dark:text-red-400",
+                badge: "bg-red-500 text-white",
+              },
+              HIGH: {
+                bg: "bg-orange-500/10 border-orange-500/25",
+                text: "text-orange-700 dark:text-orange-400",
+                badge: "bg-orange-500 text-white",
+              },
+              MODERATE: {
+                bg: "bg-yellow-500/10 border-yellow-500/25",
+                text: "text-yellow-700 dark:text-yellow-400",
+                badge: "bg-yellow-500 text-white",
+              },
+              LOW: {
+                bg: "bg-green-500/10 border-green-500/25",
+                text: "text-green-700 dark:text-green-400",
+                badge: "bg-green-500 text-white",
+              },
+              MINIMAL: {
+                bg: "bg-slate-500/10 border-slate-500/25",
+                text: "text-slate-700 dark:text-slate-400",
+                badge: "bg-slate-500 text-white",
+              },
             };
-            const styles = colorMap[level];
+            const styles = colorMap[level] || colorMap.MODERATE;
 
             return (
-              <div key={level} className={cn("rounded-lg border p-3 backdrop-blur-sm", styles.bg, styles.border)}>
-                <h5 className={cn("font-semibold mb-2 text-sm", styles.text)}>{level} RISK</h5>
-                <ul className="text-xs space-y-1">
-                  {districtsInLevel.map(d => (
-                    <li key={d._id || d.locationName} className="flex justify-between items-center text-muted-foreground">
-                      <span>{d.locationName}</span>
-                      <span className={cn("font-medium", styles.text)}>{d.riskScore}%</span>
+              <div
+                key={level}
+                className={cn("rounded-2xl border p-4 backdrop-blur-sm shadow-xs transition-all", styles.bg)}
+              >
+                <div className="flex items-center justify-between mb-3 border-b border-border/40 pb-2">
+                  <h5 className={cn("font-bold text-xs uppercase tracking-wider", styles.text)}>
+                    {level} RISK ({districtsInLevel.length})
+                  </h5>
+                  <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-bold", styles.badge)}>
+                    {level === "CRITICAL"
+                      ? "81–100%"
+                      : level === "HIGH"
+                      ? "61–80%"
+                      : level === "MODERATE"
+                      ? "41–60%"
+                      : "21–40%"}
+                  </span>
+                </div>
+
+                <ul className="text-xs space-y-1.5">
+                  {districtsInLevel.map((d) => (
+                    <li
+                      key={d._id || d.locationName}
+                      onClick={() => handleSelectDistrict(d)}
+                      className={cn(
+                        "flex justify-between items-center p-1.5 rounded-lg transition-colors cursor-pointer hover:bg-black/5 dark:hover:bg-white/5",
+                        activeDistrictId === (d._id || d.locationName) && "ring-1 ring-primary bg-primary/10"
+                      )}
+                    >
+                      <span className="font-medium text-foreground flex items-center gap-1.5">
+                        <span className="h-1.5 w-1.5 rounded-full bg-current"></span>
+                        {d.locationName}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] text-muted-foreground font-mono">
+                          {d.currentCases ?? 0} cases
+                        </span>
+                        <span className={cn("font-bold text-xs", styles.text)}>
+                          {d.riskScore}%
+                        </span>
+                      </div>
                     </li>
                   ))}
                 </ul>
               </div>
             );
           })}
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-dashed border-border bg-card p-8 text-center mt-4">
+          <XCircle className="mx-auto h-8 w-8 text-muted-foreground/60 mb-2" />
+          <h4 className="font-bold text-sm text-foreground">No matching districts found</h4>
+          <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
+            No locations matched your search &quot;{searchQuery}&quot; with risk filter &quot;{selectedRisk}&quot;.
+          </p>
+          {onClearFilters && (
+            <button
+              onClick={onClearFilters}
+              className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline cursor-pointer"
+            >
+              <RefreshCw className="h-3.5 w-3.5" /> Clear Search &amp; Show All Districts
+            </button>
+          )}
         </div>
       )}
     </div>

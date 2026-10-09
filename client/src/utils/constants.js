@@ -63,31 +63,13 @@ export const WEATHER = {
   rain: 68,
 };
 
-export const CITIZEN_REPORTS = [
-  { id: "DG-1042", date: "2026-07-24", location: "Nugegoda, Ward 12", status: "Under Review", phi: "I. Perera", updated: "2h ago", risk: "High", image: "🪣" },
-  { id: "DG-1039", date: "2026-07-22", location: "Rajagiriya, Ward 7", status: "Accepted", phi: "S. Fernando", updated: "1d ago", risk: "Medium", image: "🌱" },
-  { id: "DG-1031", date: "2026-07-19", location: "Maharagama, Ward 4", status: "Inspection Scheduled", phi: "K. Silva", updated: "2d ago", risk: "High", image: "🛢️" },
-  { id: "DG-1024", date: "2026-07-15", location: "Dehiwala, Ward 9", status: "Resolved", phi: "N. Jayasuriya", updated: "5d ago", risk: "Low", image: "🌿" },
-  { id: "DG-1018", date: "2026-07-11", location: "Kotte, Ward 2", status: "Rejected", phi: "R. Wickrama", updated: "1w ago", risk: "Low", image: "💧" },
-  { id: "DG-1011", date: "2026-07-08", location: "Battaramulla, Ward 5", status: "Pending", phi: "—", updated: "1w ago", risk: "Medium", image: "🪴" },
-];
+export const CITIZEN_REPORTS = [];
 
-export const PHI_REPORTS = [
-  { id: "DG-1042", name: "Nimal Perera", location: "Nugegoda, Ward 12", risk: "High", date: "2026-07-24", status: "Pending", image: "🪣" },
-  { id: "DG-1041", name: "Anusha Silva", location: "Kotte, Ward 2", risk: "Medium", date: "2026-07-24", status: "Pending", image: "🌱" },
-  { id: "DG-1040", name: "Kasun Fernando", location: "Rajagiriya, Ward 7", risk: "Low", date: "2026-07-23", status: "Reviewed", image: "🪴" },
-  { id: "DG-1039", name: "Ishara J.", location: "Maharagama, Ward 4", risk: "High", date: "2026-07-23", status: "Accepted", image: "🛢️" },
-  { id: "DG-1038", name: "Ruwan Bandara", location: "Dehiwala, Ward 9", risk: "Low", date: "2026-07-22", status: "Rejected", image: "💧" },
-  { id: "DG-1037", name: "Sanduni P.", location: "Battaramulla, Ward 5", risk: "Medium", date: "2026-07-22", status: "Accepted", image: "🌿" },
-];
+export const PHI_REPORTS = [];
 
 export const NOTIFICATIONS = [];
 
-export const PHI_NOTIFICATIONS = [
-  { id: 1, type: "info", title: "New report assigned", body: "DG-1042 assigned to your queue.", time: "10m ago" },
-  { id: 2, type: "warning", title: "Overdue inspection", body: "DG-1031 inspection is overdue by 1 day.", time: "2h ago" },
-  { id: 3, type: "success", title: "Report resolved", body: "DG-1024 marked as resolved.", time: "1d ago" },
-];
+export const PHI_NOTIFICATIONS = [];
 
 export const MONTHLY = [
   { name: "Jan", reports: 120, resolved: 96 },

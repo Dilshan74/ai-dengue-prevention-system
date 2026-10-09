@@ -108,91 +108,9 @@ async function seed() {
     { id: "A-05", name: "Kotte", risk: "Medium", phi: phi1.name, phiId: phi1.id, reports: 39, x: 78, y: 42 },
   ]);
 
-  // --- Reports ---
-  const report1 = await Report.create({
-    id: "DG-1042",
-    citizenId: citizen1.id,
-    citizenName: citizen1.name,
-    description: "Stagnant water in a discarded bucket near the drain.",
-    location: "Nugegoda, Ward 12",
-    address: "Nugegoda, Ward 12",
-    lat: 6.8721,
-    lng: 79.889,
-    image: "🪣",
-    images: [],
-    status: "Under Review",
-    risk: "High",
-    phi: phi1.name,
-    phiId: phi1.id,
-    date: new Date("2026-07-24"),
-    updated: new Date(),
-    comments: [],
-    history: [{ status: "Pending", date: new Date("2026-07-24"), comments: "Report submitted" }],
-  });
+  // --- Reports (Clean: no dummy reports seeded) ---
 
-  await Report.create({
-    id: "DG-1039",
-    citizenId: citizen1.id,
-    citizenName: citizen1.name,
-    description: "Overgrown vegetation trapping rainwater in a flower pot.",
-    location: "Rajagiriya, Ward 7",
-    address: "Rajagiriya, Ward 7",
-    lat: 6.9091,
-    lng: 79.8952,
-    image: "🌱",
-    images: [],
-    status: "Accepted",
-    risk: "Medium",
-    phi: phi2.name,
-    phiId: phi2.id,
-    date: new Date("2026-07-22"),
-    updated: new Date(),
-    comments: [],
-    history: [{ status: "Pending", date: new Date("2026-07-22"), comments: "Report submitted" }],
-  });
-
-  // --- Visits ---
-  const visit1 = await Visit.create({
-    id: nextId("V"),
-    reportId: report1.id,
-    phiId: phi1.id,
-    location: "Nugegoda, Ward 12",
-    scheduledDate: new Date("2026-08-25"),
-    status: "Scheduled",
-    checklist: {
-      waterPresent: false,
-      larvaeFound: false,
-      areaCleaned: false,
-      chemicalApplied: false,
-      publicEducated: false,
-    },
-    photos: [],
-    notes: "",
-  });
-
-  // --- Notifications ---
-  await Notification.insertMany([
-    {
-      id: nextId("N"),
-      userId: citizen1.id,
-      role: "citizen",
-      type: "info",
-      title: "Inspection Scheduled",
-      body: `PHI ${phi1.name} will visit ${report1.id} on Aug 25.`,
-      read: false,
-      createdAt: new Date(),
-    },
-    {
-      id: nextId("N"),
-      userId: phi1.id,
-      role: "phi",
-      type: "warning",
-      title: "Overdue inspection",
-      body: "DG-1031 inspection is overdue by 1 day.",
-      read: false,
-      createdAt: new Date(),
-    },
-  ]);
+  // --- Settings ---
 
   // --- Settings ---
   await Setting.create({

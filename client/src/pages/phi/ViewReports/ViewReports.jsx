@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Check, Eye, FileSearch, MapPin, X, Loader2 } from "lucide-react";
+import { Check, Eye, FileSearch, MapPin, X, Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import Badge from "../../../components/common/Badge";
 import Button from "../../../components/common/Button";
@@ -154,6 +154,17 @@ export default function ViewReports() {
       headerClassName: "text-right",
       render: (row) => (
         <div className="flex justify-end gap-1">
+          <Button
+            as={Link}
+            to={`/phi/prediction?reportId=${row.id}`}
+            size="sm"
+            variant="ghost"
+            className="text-primary hover:bg-primary/10"
+            title="AI Prediction Review"
+            aria-label={`AI Review ${row.id}`}
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+          </Button>
           <Button as={Link} to={`/phi/reports/${row.id}`} size="sm" variant="ghost" aria-label={`View ${row.id}`}>
             <Eye className="h-3.5 w-3.5" />
           </Button>

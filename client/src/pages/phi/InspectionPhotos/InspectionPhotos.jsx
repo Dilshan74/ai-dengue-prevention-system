@@ -12,7 +12,7 @@ export default function InspectionPhotos() {
     <>
       <PageHeader
         title="Upload Inspection Photos"
-        description="DG-1042 · Nugegoda, Ward 12"
+        description="Record and upload site inspection evidence"
       />
       <div className="grid gap-6 lg:grid-cols-2">
         {STAGES.map((stage) => (

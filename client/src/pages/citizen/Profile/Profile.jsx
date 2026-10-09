@@ -1,16 +1,29 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Pencil } from "lucide-react";
+import {
+  Pencil,
+  UserCheck,
+  ShieldAlert,
+  ArrowRightLeft,
+  Mail,
+  Phone,
+  CreditCard,
+  MapPin,
+  CheckCircle2,
+} from "lucide-react";
 import Avatar from "../../../components/common/Avatar";
 import Button from "../../../components/common/Button";
 import PageHeader from "../../../components/common/PageHeader";
 import useAuth from "../../../hooks/useAuth";
 import citizenService from "../../../services/citizenService";
+import authService from "../../../services/authService";
+import { toast } from "sonner";
 
 export default function Profile() {
-  const { user } = useAuth();
+  const { user, login } = useAuth();
   const [stats, setStats] = useState({ totalReports: 0, pending: 0, resolved: 0 });
   const [profileData, setProfileData] = useState(null);
+  const [switching, setSwitching] = useState(false);
 
   useEffect(() => {
     // Fetch stats
@@ -20,7 +33,7 @@ export default function Profile() {
         if (data?.stats) setStats(data.stats);
       })
       .catch(() => {});
-      
+
     // Fetch full profile details
     citizenService
       .profile()
@@ -30,59 +43,219 @@ export default function Profile() {
       .catch(() => {});
   }, []);
 
+  const handleSwitchToCitizen = async () => {
+    try {
+      setSwitching(true);
+      toast.info("Switching to Citizen Demo account...");
+      const data = await authService.login({
+        email: "citizen@dengueguard.lk",
+        password: "demo1234",
+        role: "citizen",
+      });
+      login({
+        email: data.email,
+        name: data.name,
+        role: "citizen",
+        token: data.token,
+      });
+      toast.success("Switched to Citizen Demo account!");
+      window.location.reload();
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Failed to switch account");
+    } finally {
+      setSwitching(false);
+    }
+  };
+
   const STATS = [
     { label: "Reports", value: stats.totalReports, className: "" },
-    { label: "Resolved", value: stats.resolved, className: "text-success" },
-    { label: "Pending", value: stats.pending, className: "text-warning" },
+    { label: "Resolved", value: stats.resolved, className: "text-emerald-600" },
+    { label: "Pending", value: stats.pending, className: "text-amber-500" },
   ];
 
-  const displayName = profileData?.name || user?.name;
-  const displayEmail = profileData?.email || user?.email;
+  const displayName = profileData?.name || user?.name || "User";
+  const displayEmail = profileData?.email || user?.email || "";
+  const isPhiUser = displayEmail.includes("phi") || profileData?.role === "phi" || user?.role === "phi";
 
   return (
-    <>
+    <div className="space-y-6 max-w-5xl mx-auto">
       <PageHeader
         title="My Profile"
-        description="Your personal information and reporting history"
+        description="Your personal information, community reporting history, and assigned area."
         action={
-          <Button as={Link} to="/citizen/profile/edit">
-            <Pencil className="h-4 w-4" /> Edit profile
-          </Button>
+          <div className="flex items-center gap-2">
+            {isPhiUser && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSwitchToCitizen}
+                disabled={switching}
+                className="text-xs"
+              >
+                <ArrowRightLeft className="mr-1.5 h-3.5 w-3.5" /> Switch to Citizen Account
+              </Button>
+            )}
+            <Button as={Link} to="/citizen/profile/edit" size="sm" className="text-xs">
+              <Pencil className="mr-1.5 h-3.5 w-3.5" /> Edit Profile
+            </Button>
+          </div>
         }
       />
-      <div className="grid gap-6 lg:grid-cols-[1fr_2fr]">
-        <div className="soft-shadow rounded-2xl border border-border bg-card p-6 text-center">
-          <Avatar name={displayName} className="mx-auto h-24 w-24 border-4" textClassName="text-2xl" />
-          <h3 className="mt-4 text-lg font-semibold">{displayName}</h3>
-          <p className="text-sm text-muted-foreground">{displayEmail}</p>
-          <div className="mt-4 grid grid-cols-3 gap-2 text-xs">
+
+      {/* Account Role Notice if logged in as PHI inside Citizen Portal */}
+      {isPhiUser && (
+        <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-xs text-amber-800 dark:text-amber-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-start gap-2.5">
+            <ShieldAlert className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold text-amber-900 dark:text-amber-100 text-sm">
+                You are currently logged in with the PHI Officer Account ({displayEmail})
+              </p>
+              <p className="text-muted-foreground mt-0.5">
+                These are the details for Public Health Inspector <strong>I. Perera</strong>. To view or test with the Citizen account (Citizen Demo), click the switch button.
+              </p>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            onClick={handleSwitchToCitizen}
+            disabled={switching}
+            className="shrink-0 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-xl"
+          >
+            Switch to Citizen
+          </Button>
+        </div>
+      )}
+
+      <div className="grid gap-6 lg:grid-cols-[1fr_2fr] items-start">
+        {/* Left Profile Card */}
+        <div className="soft-shadow rounded-3xl border border-border bg-card p-6 text-center space-y-4">
+          <div className="relative inline-block">
+            <Avatar
+              name={displayName}
+              className="mx-auto h-24 w-24 border-4 border-primary/20 shadow-md"
+              textClassName="text-2xl font-bold"
+            />
+            <span className="absolute bottom-1 right-1 rounded-full bg-emerald-500 p-1 border-2 border-card text-white">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+            </span>
+          </div>
+
+          <div>
+            <h3 className="text-lg font-bold text-foreground">{displayName}</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">{displayEmail}</p>
+            <span className="inline-block mt-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-0.5 text-[11px] font-semibold text-primary uppercase tracking-wider">
+              {profileData?.role ? `${profileData.role} account` : "Active Member"}
+            </span>
+          </div>
+
+          <div className="border-t border-border pt-4 grid grid-cols-3 gap-2 text-center">
             {STATS.map((stat) => (
-              <div key={stat.label}>
-                <div className={`text-lg font-bold ${stat.className}`}>{stat.value}</div>
-                <div className="text-muted-foreground">{stat.label}</div>
+              <div key={stat.label} className="rounded-xl bg-muted/30 p-2 border border-border/40">
+                <div className={`text-base font-extrabold ${stat.className}`}>{stat.value}</div>
+                <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
+                  {stat.label}
+                </div>
               </div>
             ))}
           </div>
+
+          <Button
+            as={Link}
+            to="/citizen/profile/edit"
+            variant="outline"
+            className="w-full text-xs rounded-xl"
+          >
+            <Pencil className="mr-1.5 h-3.5 w-3.5" /> Edit Personal Information
+          </Button>
         </div>
 
-        <div className="soft-shadow rounded-2xl border border-border bg-card p-6">
-          <h3 className="mb-4 font-semibold">Personal details</h3>
-          <dl className="grid gap-4 sm:grid-cols-2">
-            {[
-              ["Full Name", displayName],
-              ["Email", displayEmail],
-              ["Mobile", profileData?.mobile || "Not Provided"],
-              ["NIC", profileData?.nic || "Not Provided"],
-              ["Address", profileData?.address || profileData?.area || "Not Provided"],
-            ].map(([label, value]) => (
-              <div key={label} className="rounded-xl bg-muted/30 p-3">
-                <dt className="text-xs text-muted-foreground">{label}</dt>
-                <dd className="mt-0.5 text-sm font-medium">{value}</dd>
+        {/* Right Details Grid */}
+        <div className="soft-shadow rounded-3xl border border-border bg-card p-6 space-y-4">
+          <div className="flex items-center justify-between border-b border-border pb-3">
+            <div>
+              <h3 className="font-bold text-sm text-foreground">Personal Information</h3>
+              <p className="text-xs text-muted-foreground">Registered contact and residential details</p>
+            </div>
+            <Link
+              to="/citizen/profile/edit"
+              className="text-xs font-semibold text-primary hover:underline flex items-center gap-1"
+            >
+              <Pencil className="h-3 w-3" /> Edit
+            </Link>
+          </div>
+
+          <div className="grid gap-3.5 sm:grid-cols-2">
+            <div className="rounded-2xl border border-border/80 bg-muted/20 p-3.5 flex items-start gap-3">
+              <div className="grid h-8 w-8 place-items-center rounded-xl bg-primary/10 text-primary shrink-0">
+                <UserCheck className="h-4 w-4" />
               </div>
-            ))}
-          </dl>
+              <div>
+                <dt className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                  Full Name
+                </dt>
+                <dd className="mt-0.5 text-sm font-semibold text-foreground">{displayName}</dd>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-border/80 bg-muted/20 p-3.5 flex items-start gap-3">
+              <div className="grid h-8 w-8 place-items-center rounded-xl bg-primary/10 text-primary shrink-0">
+                <Mail className="h-4 w-4" />
+              </div>
+              <div>
+                <dt className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                  Email Address
+                </dt>
+                <dd className="mt-0.5 text-sm font-semibold text-foreground truncate max-w-[200px]">
+                  {displayEmail}
+                </dd>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-border/80 bg-muted/20 p-3.5 flex items-start gap-3">
+              <div className="grid h-8 w-8 place-items-center rounded-xl bg-primary/10 text-primary shrink-0">
+                <Phone className="h-4 w-4" />
+              </div>
+              <div>
+                <dt className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                  Mobile Number
+                </dt>
+                <dd className="mt-0.5 text-sm font-semibold text-foreground">
+                  {profileData?.mobile || "Not Provided"}
+                </dd>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-border/80 bg-muted/20 p-3.5 flex items-start gap-3">
+              <div className="grid h-8 w-8 place-items-center rounded-xl bg-primary/10 text-primary shrink-0">
+                <CreditCard className="h-4 w-4" />
+              </div>
+              <div>
+                <dt className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                  National ID (NIC)
+                </dt>
+                <dd className="mt-0.5 text-sm font-semibold text-foreground">
+                  {profileData?.nic || "Not Provided"}
+                </dd>
+              </div>
+            </div>
+
+            <div className="sm:col-span-2 rounded-2xl border border-border/80 bg-muted/20 p-3.5 flex items-start gap-3">
+              <div className="grid h-8 w-8 place-items-center rounded-xl bg-primary/10 text-primary shrink-0">
+                <MapPin className="h-4 w-4" />
+              </div>
+              <div>
+                <dt className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                  Residential Area / Address
+                </dt>
+                <dd className="mt-0.5 text-sm font-semibold text-foreground">
+                  {profileData?.address || profileData?.area || "Not Provided"}
+                </dd>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }

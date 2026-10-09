@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation, Link } from "react-router-dom";
 import {
   Eye,
@@ -14,11 +14,14 @@ import {
   CloudRain,
   Activity,
   BarChart3,
-  Gauge,
-  TrendingUp,
   MapPin,
   Info,
   Loader2,
+  History,
+  Calendar,
+  Clock,
+  ChevronRight,
+  Upload,
 } from "lucide-react";
 import { toast } from "sonner";
 import Button from "../../../components/common/Button";
@@ -26,75 +29,194 @@ import PageHeader from "../../../components/common/PageHeader";
 import citizenService from "../../../services/citizenService";
 import aiService from "../../../services/aiService";
 
+function normalizeAnalysis(item) {
+  if (!item) return null;
+  const pred = item.prediction || item;
+  return {
+    id: pred.id || item.id || "PRED-HIST",
+    reportId: item.reportId || pred.reportId || (item.id?.startsWith("DG-") ? item.id : null),
+    location: item.location || pred.location || "Location not specified",
+    coords: item.coords || (item.lat != null && item.lng != null ? { lat: item.lat, lng: item.lng } : null),
+    risk: pred.rfRiskLevel || pred.risk || item.risk || "Medium",
+    rfRiskLevel: pred.rfRiskLevel || pred.risk || item.risk || "Medium",
+    rfRiskScore:
+      pred.rfRiskScore !== undefined
+        ? Number(pred.rfRiskScore)
+        : item.rfRiskScore !== undefined
+        ? Number(item.rfRiskScore)
+        : pred.risk === "High"
+        ? 85.0
+        : pred.risk === "Medium"
+        ? 55.0
+        : 20.0,
+    confidence:
+      pred.confidence !== undefined
+        ? Number(pred.confidence)
+        : item.confidence !== undefined
+        ? Number(item.confidence)
+        : 88.0,
+    aiSeverityScore: pred.aiSeverityScore ?? pred.riskFactors?.aiSeverity ?? item.aiSeverityScore ?? 65.0,
+    detectedObjects: pred.detectedObjects || item.detectedObjects || [],
+    annotatedImage: pred.annotatedImage || item.annotatedImage || pred.image || item.image || item.images?.[0] || "",
+    originalImage: pred.originalImage || item.originalImage || pred.image || item.image || item.images?.[0] || "",
+    imagePreview: item.imagePreview || pred.imagePreview || null,
+    riskFactors: pred.riskFactors || {
+      aiSeverity: pred.aiSeverityScore || item.aiSeverityScore || 65.0,
+      aiConfidence: pred.confidence || item.confidence || 88.0,
+      rainfallMm: pred.rainfall_mm || 45.0,
+      ndcuCases: pred.ndcu_cases || 320,
+      reportDensity: pred.report_density || 4,
+    },
+    recommendations: pred.recommendations || item.recommendations || [
+      "Empty water-retaining receptacles immediately to eliminate mosquito breeding larvae.",
+      "Store unused tires and containers in dry, sheltered areas or recycle them.",
+    ],
+    environmentalSources: pred.environmentalSources || null,
+    createdAt: pred.createdAt || item.createdAt || item.date || new Date().toISOString(),
+    category: item.category || "container",
+    description: item.description || pred.description || "",
+    status: item.status || null,
+    phi: item.phi || null,
+  };
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return "Recent";
+  try {
+    const d = new Date(dateStr);
+    return d.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return dateStr;
+  }
+}
+
 export default function AIResult() {
   const location = useLocation();
-  const state = location.state || {};
-  const prediction = state.prediction;
-  const originalPreview = state.imagePreview;
+  const navState = location.state || {};
 
+  const [historyList, setHistoryList] = useState([]);
+  const [selectedPrediction, setSelectedPrediction] = useState(
+    navState.prediction ? normalizeAnalysis(navState) : null
+  );
+  const [selectedMeta, setSelectedMeta] = useState({
+    location: navState.location || navState.prediction?.location || "",
+    coords: navState.coords || null,
+    imagePreview: navState.imagePreview || null,
+    category: navState.category || "container",
+    description: navState.description || "",
+  });
+
+  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [showAnnotated, setShowAnnotated] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
   const [dispatchedReport, setDispatchedReport] = useState(null);
 
-  if (!prediction) {
-    return (
-      <div className="space-y-6">
-        <PageHeader
-          title="Dengue Risk Assessment Result"
-          description="View AI object detection and ML risk assessment results"
-        />
-        <div className="flex min-h-[380px] flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card p-8 text-center">
-          <div className="mb-4 rounded-full bg-primary/10 p-4 text-primary">
-            <Sparkles className="h-8 w-8" />
-          </div>
-          <h2 className="mb-2 text-lg font-bold text-foreground">No AI Analysis Available</h2>
-          <p className="mb-6 max-w-md text-sm text-muted-foreground">
-            Please upload a photo of a suspected mosquito breeding site to run YOLOv8 object detection and Random Forest risk scoring.
-          </p>
-          <Link to="/citizen/upload">
-            <Button>
-              <ArrowLeft className="mr-2 h-4 w-4" /> Go to Upload Image
-            </Button>
-          </Link>
-        </div>
-      </div>
-    );
-  }
+  // Load previous analyses from API, Complaints, and LocalStorage
+  useEffect(() => {
+    let isMounted = true;
 
-  const reportLocation = state.location || prediction.location || "Location not specified";
-  const reportCoords = state.coords;
-  const hasReportCoords =
-    Number.isFinite(reportCoords?.lat) && Number.isFinite(reportCoords?.lng);
+    async function loadAnalyses() {
+      setIsLoadingHistory(true);
+      const items = [];
 
-  // Machine Learning Risk values from Random Forest model
-  const rfRiskScore = prediction.rfRiskScore !== undefined ? Number(prediction.rfRiskScore) : 0;
-  const rfRiskLevel = prediction.rfRiskLevel || prediction.risk || "Low";
-  const confidence = prediction.confidence ?? 0;
-  const aiSeverity = prediction.aiSeverityScore ?? (prediction.riskFactors?.aiSeverity ?? 0);
-  const detectedObjects = prediction.detectedObjects || [];
+      // 1. Fetch from AI predictions history
+      try {
+        const historyRes = await aiService.getHistory();
+        if (Array.isArray(historyRes) && historyRes.length > 0) {
+          items.push(...historyRes.map(normalizeAnalysis));
+        }
+      } catch (e) {
+        console.warn("Could not fetch AI predictions history:", e);
+      }
 
-  // Risk Factors (features from dengue_data.csv)
-  const factors = prediction.riskFactors || {
-    aiSeverity: aiSeverity,
-    aiConfidence: confidence,
-    rainfallMm: 0,
-    ndcuCases: 0,
-    reportDensity: 0,
+      // 2. Fetch from Citizen complaints
+      try {
+        const complaintsRes = await citizenService.complaints({ pageSize: 20 });
+        const list = complaintsRes.data || complaintsRes || [];
+        if (Array.isArray(list)) {
+          items.push(...list.map(normalizeAnalysis));
+        }
+      } catch (e) {
+        console.warn("Could not fetch citizen complaints:", e);
+      }
+
+      // 3. Check localStorage cached prediction
+      try {
+        const cached = localStorage.getItem("dengue_last_prediction");
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          items.unshift(normalizeAnalysis(parsed));
+        }
+      } catch (e) {}
+
+      // 4. Fresh prediction from navigation state
+      if (navState.prediction) {
+        const fresh = normalizeAnalysis({
+          ...navState,
+          prediction: navState.prediction,
+        });
+        items.unshift(fresh);
+      }
+
+      // Deduplicate items
+      const seen = new Set();
+      const uniqueItems = [];
+      for (const item of items) {
+        if (!item) continue;
+        const key = item.id || `${item.annotatedImage || item.originalImage}-${item.createdAt}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          uniqueItems.push(item);
+        }
+      }
+
+      // Sort newest first
+      uniqueItems.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+      if (isMounted) {
+        setHistoryList(uniqueItems);
+
+        if (navState.prediction) {
+          selectAnalysis(uniqueItems[0] || normalizeAnalysis(navState));
+        } else if (uniqueItems.length > 0) {
+          selectAnalysis(uniqueItems[0]);
+        }
+        setIsLoadingHistory(false);
+      }
+    }
+
+    loadAnalyses();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [location.state]);
+
+  const selectAnalysis = (analysis) => {
+    if (!analysis) return;
+    setSelectedPrediction(analysis);
+    setSelectedMeta({
+      location: analysis.location,
+      coords: analysis.coords,
+      imagePreview: analysis.imagePreview,
+      category: analysis.category,
+      description: analysis.description,
+    });
+    if (analysis.status || (analysis.reportId && analysis.reportId.startsWith("DG-"))) {
+      setDispatchedReport({
+        id: analysis.reportId || analysis.id,
+        phi: analysis.phi || "Assigned",
+      });
+    } else {
+      setDispatchedReport(null);
+    }
   };
-
-  const recommendations = prediction.recommendations?.length
-    ? prediction.recommendations
-    : [
-        "Empty water-retaining receptacles immediately to eliminate mosquito breeding larvae.",
-        "Store unused tires and containers in dry, sheltered areas or recycle them.",
-      ];
-  const reportId = prediction.id || "N/A";
-
-  // Image source selection
-  const annotatedSrc = prediction.annotatedImage || originalPreview;
-  const rawSrc = prediction.originalImage || originalPreview;
-  const displayImage = showAnnotated && annotatedSrc ? annotatedSrc : (rawSrc || originalPreview);
 
   const getRiskBadge = (level) => {
     switch (level?.toLowerCase()) {
@@ -124,6 +246,85 @@ export default function AIResult() {
         };
     }
   };
+
+  // Loading indicator for initial history fetch
+  if (isLoadingHistory && !selectedPrediction) {
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          title="Dengue Risk Assessment Result"
+          description="View AI object detection and ML risk assessment results"
+        />
+        <div className="flex min-h-[380px] flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card p-8 text-center">
+          <Loader2 className="mb-4 h-10 w-10 animate-spin text-primary" />
+          <h2 className="mb-1 text-lg font-bold text-foreground">Loading AI Analysis History...</h2>
+          <p className="max-w-md text-sm text-muted-foreground">
+            Retrieving previous YOLO detections and ML risk assessments from your profile.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Truly no predictions found
+  if (!selectedPrediction) {
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          title="Dengue Risk Assessment Result"
+          description="View AI object detection and ML risk assessment results"
+        />
+        <div className="flex min-h-[380px] flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card p-8 text-center">
+          <div className="mb-4 rounded-full bg-primary/10 p-4 text-primary">
+            <Sparkles className="h-8 w-8" />
+          </div>
+          <h2 className="mb-2 text-lg font-bold text-foreground">No AI Analysis Available</h2>
+          <p className="mb-6 max-w-md text-sm text-muted-foreground">
+            Please upload a photo of a suspected mosquito breeding site to run YOLOv8 object detection and Random Forest risk scoring.
+          </p>
+          <Link to="/citizen/upload">
+            <Button>
+              <ArrowLeft className="mr-2 h-4 w-4" /> Go to Upload Image
+            </Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Active prediction values
+  const prediction = selectedPrediction;
+  const reportLocation = selectedMeta.location || prediction.location || "Location not specified";
+  const reportCoords = selectedMeta.coords || prediction.coords;
+  const hasReportCoords =
+    Number.isFinite(reportCoords?.lat) && Number.isFinite(reportCoords?.lng);
+
+  const rfRiskScore = prediction.rfRiskScore !== undefined ? Number(prediction.rfRiskScore) : 0;
+  const rfRiskLevel = prediction.rfRiskLevel || prediction.risk || "Low";
+  const confidence = prediction.confidence ?? 0;
+  const aiSeverity = prediction.aiSeverityScore ?? (prediction.riskFactors?.aiSeverity ?? 0);
+  const detectedObjects = prediction.detectedObjects || [];
+
+  const factors = prediction.riskFactors || {
+    aiSeverity: aiSeverity,
+    aiConfidence: confidence,
+    rainfallMm: 0,
+    ndcuCases: 0,
+    reportDensity: 0,
+  };
+
+  const recommendations = prediction.recommendations?.length
+    ? prediction.recommendations
+    : [
+        "Empty water-retaining receptacles immediately to eliminate mosquito breeding larvae.",
+        "Store unused tires and containers in dry, sheltered areas or recycle them.",
+      ];
+  const reportId = prediction.reportId || prediction.id || "N/A";
+
+  const originalPreview = selectedMeta.imagePreview;
+  const annotatedSrc = prediction.annotatedImage || originalPreview;
+  const rawSrc = prediction.originalImage || originalPreview;
+  const displayImage = showAnnotated && annotatedSrc ? annotatedSrc : (rawSrc || originalPreview);
 
   const riskBadge = getRiskBadge(rfRiskLevel);
   const RiskIcon = riskBadge.icon;
@@ -195,9 +396,9 @@ export default function AIResult() {
         location: reportLocation,
         address: reportLocation,
         description:
-          state.description ||
+          selectedMeta.description ||
           `AI Dengue Risk Alert: ${rfRiskLevel} risk site detected (${detectedObjects.map((o) => o.label).join(", ") || "breeding hazard"}).`,
-        category: state.category || "container",
+        category: selectedMeta.category || "container",
         risk: rfRiskLevel,
         image: primaryImg,
         images: allImages.length > 0 ? allImages : [primaryImg].filter(Boolean),
@@ -225,6 +426,7 @@ export default function AIResult() {
 
   return (
     <>
+      {/* Top Navigation & Status */}
       <div className="mb-4 flex items-center justify-between">
         <Link
           to="/citizen/upload"
@@ -232,10 +434,94 @@ export default function AIResult() {
         >
           <ArrowLeft className="h-3.5 w-3.5" /> Back to Upload
         </Link>
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-          <Cpu className="h-3.5 w-3.5" /> 2-Stage AI &amp; ML Architecture
-        </span>
+        <div className="flex items-center gap-2">
+          <Link
+            to="/citizen/upload"
+            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 text-xs font-semibold text-foreground hover:bg-muted transition-colors shadow-xs"
+          >
+            <Upload className="h-3.5 w-3.5 text-primary" /> Upload New Photo
+          </Link>
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+            <Cpu className="h-3.5 w-3.5" /> 2-Stage AI &amp; ML Architecture
+          </span>
+        </div>
       </div>
+
+      {/* PREVIOUS ANALYSES SELECTOR BAR */}
+      {historyList.length > 0 && (
+        <div className="mb-6 rounded-2xl border border-border bg-card p-4 soft-shadow">
+          <div className="mb-3 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <History className="h-4 w-4 text-primary" />
+              <h3 className="text-xs font-bold uppercase tracking-wider text-foreground">
+                Previous Analyses ({historyList.length})
+              </h3>
+            </div>
+            <span className="text-[11px] text-muted-foreground">
+              Click any past analysis to view details &amp; risk factors
+            </span>
+          </div>
+
+          <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-thin">
+            {historyList.map((item, idx) => {
+              const isSelected = selectedPrediction?.id === item.id;
+              const badge = getRiskBadge(item.rfRiskLevel);
+              const thumb = item.annotatedImage || item.originalImage || item.imagePreview;
+              const hazardLabels = item.detectedObjects?.map((o) => o.label).slice(0, 2).join(", ");
+
+              return (
+                <button
+                  key={item.id || idx}
+                  onClick={() => selectAnalysis(item)}
+                  className={`flex min-w-[240px] max-w-[280px] shrink-0 items-center gap-3 rounded-xl border p-2.5 text-left transition-all ${
+                    isSelected
+                      ? "border-primary bg-primary/5 ring-2 ring-primary/30 shadow-xs"
+                      : "border-border bg-muted/20 hover:border-primary/50 hover:bg-muted/40"
+                  }`}
+                >
+                  <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-slate-900/10 border border-border">
+                    {thumb ? (
+                      <img
+                        src={thumb}
+                        alt="site"
+                        className="h-full w-full object-cover"
+                        onError={(e) => {
+                          e.target.style.display = "none";
+                        }}
+                      />
+                    ) : (
+                      <div className="grid h-full w-full place-items-center text-xs">🪣</div>
+                    )}
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-1 mb-0.5">
+                      <span className="truncate text-xs font-bold text-foreground">
+                        {item.id || `Analysis #${historyList.length - idx}`}
+                      </span>
+                      <span className={`rounded px-1.5 py-0.2 text-[10px] font-bold uppercase ${badge.bg}`}>
+                        {item.rfRiskLevel}
+                      </span>
+                    </div>
+
+                    <div className="truncate text-[11px] text-muted-foreground">
+                      {hazardLabels || item.location || "Mosquito site"}
+                    </div>
+
+                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground mt-0.5">
+                      <Clock className="h-3 w-3" />
+                      <span>{formatDate(item.createdAt)}</span>
+                      {isSelected && (
+                        <span className="ml-auto font-bold text-primary text-[10px]">Active</span>
+                      )}
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <PageHeader
         title="Dengue Risk Assessment Result"

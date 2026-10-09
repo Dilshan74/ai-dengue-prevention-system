@@ -14,6 +14,8 @@ export const aiService = {
     });
   },
   prediction: (reportId) => request({ url: `/ai/predictions/${reportId}` }),
+  getHistory: () => request({ url: "/ai/predictions/history" }),
+  getLatest: () => request({ url: "/ai/predictions/latest" }),
   accuracy: (params) => request({ url: "/ai/accuracy", params }),
   feedback: (reportId, payload) =>
     request({ url: `/ai/predictions/${reportId}/feedback`, method: "post", data: payload }),
