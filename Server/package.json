@@ -8,6 +8,8 @@
     "start": "node server.js",
     "dev": "nodemon server.js",
     "ai:start": "python ai_model/ai_service.py",
+    "ai:test": "python ai_model/test_prediction.py",
+    "ai:train": "python ai_model/train_rf.py",
     "seed": "node src/seed.js",
     "db:create": "node src/initDB.js"
   },
