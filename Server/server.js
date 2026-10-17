@@ -32,4 +32,5 @@ const startServer = async () => {
   }
 };
 
-startServer();
+// DengueGuard AI backend bootstrap
+startServer();

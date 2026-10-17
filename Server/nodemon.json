@@ -1,0 +1,11 @@
+{
+  "watch": ["server.js", "src"],
+  "ignore": [
+    "uploads/**",
+    "src/data/**",
+    "ai_model/**",
+    "node_modules/**",
+    "*.log"
+  ],
+  "ext": "js,mjs"
+}
