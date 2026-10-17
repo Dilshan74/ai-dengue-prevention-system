@@ -325,11 +325,17 @@ export default function UploadImage() {
       const prediction = await aiService.predict(file, payload);
 
       const serverImg = prediction?.originalImage || prediction?.image || prediction?.annotatedImage;
+      let localBlob = null;
+      try {
+        if (file) localBlob = URL.createObjectURL(file);
+      } catch (_) {}
+
       const analysisPayload = {
         userId: user?.id,
         userEmail: user?.email,
         prediction,
-        imagePreview: serverImg || URL.createObjectURL(file),
+        imagePreview: localBlob || serverImg,
+        localBlobUrl: localBlob,
         location: activeLocation,
         description,
         coords:
@@ -338,6 +344,7 @@ export default function UploadImage() {
             : null,
         timestamp: new Date().toISOString(),
       };
+
 
       try {
         localStorage.setItem("dengue_last_prediction", JSON.stringify(analysisPayload));
