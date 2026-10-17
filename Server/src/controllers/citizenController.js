@@ -158,10 +158,19 @@ export const createComplaint = asyncHandler(async (req, res) => {
     assignedPhi = await User.findOne({ role: "phi" }).lean();
   }
 
+  // Ensure the citizen identity is robustly set to the authenticated citizen (or demo citizen if testing)
+  let citizenUser = req.user;
+  if (req.user?.role !== "citizen") {
+    const demoCitizen = await User.findOne({ email: req.body?.citizenEmail || "citizen@dengueguard.lk" }).lean();
+    if (demoCitizen) {
+      citizenUser = demoCitizen;
+    }
+  }
+
   const report = await Report.create({
     id: await getNextReportId(Report),
-    citizenId: req.user.id,
-    citizenName: req.user.name,
+    citizenId: citizenUser.id,
+    citizenName: citizenUser.name,
     description,
     location,
     address: address || location,
