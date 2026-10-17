@@ -54,6 +54,29 @@ const QUICK_DISTRICTS = [
   { name: "Kalutara", loc: VERIFIED_LOCATIONS[7] },
 ];
 
+const SRI_LANKA_REGIONS = [
+  { keywords: ["colombo", "kollupitiya", "cinnamon", "borella", "maradana", "pettah"], lat: 6.9271, lon: 79.8612, label: "Colombo", district: "Colombo", rainfall: 125, cases: 980, density: 8 },
+  { keywords: ["galle", "karapitiya", "hikkaduwa", "unawatuna", "galle fort"], lat: 6.0535, lon: 80.2210, label: "Galle", district: "Galle", rainfall: 90, cases: 310, density: 3 },
+  { keywords: ["kandy", "peradeniya", "katugastota", "gampola"], lat: 7.2906, lon: 80.6337, label: "Kandy", district: "Kandy", rainfall: 95, cases: 450, density: 5 },
+  { keywords: ["gampaha", "negombo", "kelaniya", "ja-ela", "kadawatha"], lat: 7.0840, lon: 79.9925, label: "Gampaha", district: "Gampaha", rainfall: 110, cases: 750, density: 6 },
+  { keywords: ["kalutara", "panadura", "wadduwa", "beruwala", "aluthgama"], lat: 6.5854, lon: 79.9607, label: "Kalutara", district: "Kalutara", rainfall: 135, cases: 480, density: 5 },
+  { keywords: ["matara", "weligama", "mirissa", "dikwella"], lat: 5.9549, lon: 80.5550, label: "Matara", district: "Matara", rainfall: 95, cases: 290, density: 3 },
+  { keywords: ["hambantota", "tangalle", "beliatta"], lat: 6.1429, lon: 81.1212, label: "Hambantota", district: "Hambantota", rainfall: 75, cases: 220, density: 2 },
+  { keywords: ["kurunegala", "kuliyapitiya", "narammala"], lat: 7.4863, lon: 80.3623, label: "Kurunegala", district: "Kurunegala", rainfall: 80, cases: 380, density: 4 },
+  { keywords: ["ratnapura", "balangoda", "pelmadulla"], lat: 6.6828, lon: 80.4037, label: "Ratnapura", district: "Ratnapura", rainfall: 140, cases: 510, density: 5 },
+  { keywords: ["anuradhapura"], lat: 8.3114, lon: 80.4037, label: "Anuradhapura", district: "Anuradhapura", rainfall: 70, cases: 310, density: 3 },
+  { keywords: ["jaffna", "chavakachcheri"], lat: 9.6615, lon: 80.0255, label: "Jaffna", district: "Jaffna", rainfall: 65, cases: 210, density: 3 },
+  { keywords: ["batticaloa", "kattankudy"], lat: 7.7310, lon: 81.6747, label: "Batticaloa", district: "Batticaloa", rainfall: 70, cases: 260, density: 3 },
+  { keywords: ["badulla", "bandarawela", "ella"], lat: 6.9934, lon: 81.0550, label: "Badulla", district: "Badulla", rainfall: 90, cases: 270, density: 3 },
+  { keywords: ["matale", "dambulla", "sigiriya"], lat: 7.4675, lon: 80.6234, label: "Matale", district: "Matale", rainfall: 85, cases: 280, density: 4 },
+  { keywords: ["nuwara eliya", "hatton"], lat: 6.9497, lon: 80.7891, label: "Nuwara Eliya", district: "Nuwara Eliya", rainfall: 100, cases: 180, density: 3 },
+  { keywords: ["nugegoda"], lat: 6.8712, lon: 79.8890, label: "Nugegoda", district: "Colombo", rainfall: 125, cases: 980, density: 8 },
+  { keywords: ["maharagama"], lat: 6.8480, lon: 79.9265, label: "Maharagama", district: "Colombo", rainfall: 125, cases: 880, density: 7 },
+  { keywords: ["ratmalana", "borupana"], lat: 6.8185, lon: 79.8947, label: "Ratmalana", district: "Colombo", rainfall: 125, cases: 910, density: 7 },
+  { keywords: ["moratuwa"], lat: 6.7730, lon: 79.8816, label: "Moratuwa", district: "Colombo", rainfall: 125, cases: 890, density: 7 },
+  { keywords: ["dehiwala"], lat: 6.8402, lon: 79.8712, label: "Dehiwala", district: "Colombo", rainfall: 125, cases: 920, density: 7 },
+];
+
 const QUICK_DESCRIPTIONS = [
   "Tires collecting stagnant rainwater",
   "Coconut shells in backyard after rain",
@@ -121,22 +144,76 @@ export default function UploadImage() {
     toast.success(`Location set: ${loc.label}`);
   };
 
-  // Reverse geocoding helper (OpenStreetMap Nominatim)
+  // Intelligent reverse geocoding with multi-source fallback
   const reverseGeocode = async (lat, lon) => {
+    // 1. Try BigDataCloud reverse geocoding API (free client endpoint, highly accurate for Sri Lanka)
+    try {
+      const res = await fetch(
+        `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`
+      );
+      const data = await res.json();
+      if (data && (data.locality || data.city)) {
+        const place = data.locality || data.city || "";
+        const district = data.principalSubdivision || "";
+        const parts = [place, district].filter(Boolean);
+        if (parts.length) {
+          return `${parts.join(", ")}, Sri Lanka`;
+        }
+      }
+    } catch {
+      // Fall through to Nominatim
+    }
+
+    // 2. OpenStreetMap Nominatim with smart Sri Lankan hierarchy cleanup
     try {
       const res = await fetch(
         `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`,
         { headers: { "User-Agent": "DengueGuard-App/1.0" } }
       );
       const data = await res.json();
+      if (data && data.address) {
+        const addr = data.address;
+        const street = addr.road || addr.hamlet || addr.neighbourhood || "";
+        let city = addr.suburb || addr.town || addr.city || addr.municipality || "";
+        // Correct known OSM tagging issue where Borupana road in Ratmalana is attached to Maharagama
+        if ((street.toLowerCase().includes("borupana") || addr.postcode === "10390") && city.toLowerCase() === "maharagama") {
+          city = "Ratmalana";
+        }
+        const district = addr.state_district || addr.district || addr.state || "";
+        const cleanParts = [street, city, district].filter(Boolean);
+        if (cleanParts.length) {
+          return [...new Set(cleanParts)].join(", ");
+        }
+      }
       if (data && data.display_name) {
-        const parts = data.display_name.split(",").map((p) => p.trim());
-        return parts.slice(0, 3).join(", ");
+        return data.display_name.split(",").slice(0, 3).join(", ");
       }
     } catch {
       // Graceful fallback
     }
     return null;
+  };
+
+  // Live forward-geocoding when user types an address or district
+  const handleLocationTextChange = (text) => {
+    setLocationText(text);
+    if (!text || text.trim().length < 3) return;
+    const lower = text.toLowerCase().trim();
+    const matched = SRI_LANKA_REGIONS.find((reg) =>
+      reg.keywords.some((k) => lower.includes(k))
+    );
+    if (matched) {
+      setCoords({
+        lat: matched.lat,
+        lon: matched.lon,
+        accuracy: 15,
+        gpsActive: true,
+        isLocating: false,
+      });
+      setRainfallMm(matched.rainfall);
+      setNdcuCases(matched.cases);
+      setReportDensity(matched.density);
+    }
   };
 
   // One-click live GPS detection
@@ -160,11 +237,12 @@ export default function UploadImage() {
       async (pos) => {
         const lat = pos.coords.latitude;
         const lon = pos.coords.longitude;
+        const accuracy = Math.round(pos.coords.accuracy || 15);
 
         setCoords({
           lat,
           lon,
-          accuracy: pos.coords.accuracy,
+          accuracy,
           gpsActive: true,
           isLocating: false,
         });
@@ -202,7 +280,7 @@ export default function UploadImage() {
     if (!newPos) return;
     const lat = newPos.lat;
     const lon = newPos.lng;
-    setCoords({ lat, lon, accuracy: 10, gpsActive: true, isLocating: false });
+    setCoords({ lat, lon, accuracy: 5, gpsActive: true, isLocating: false });
     setLocationText(`${lat.toFixed(6)}, ${lon.toFixed(6)}`);
 
     const addr = await reverseGeocode(lat, lon);
@@ -434,8 +512,8 @@ export default function UploadImage() {
                     id="areaLocation"
                     type="text"
                     value={locationText}
-                    onChange={(e) => setLocationText(e.target.value)}
-                    placeholder="Click Detect GPS or choose district above..."
+                    onChange={(e) => handleLocationTextChange(e.target.value)}
+                    placeholder="Type town, district, or click Detect GPS above..."
                     className="h-10 w-full rounded-xl border border-input bg-card pl-9 pr-3 text-xs md:text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary shadow-xs"
                   />
                 </div>
@@ -459,22 +537,58 @@ export default function UploadImage() {
             </div>
 
             {/* Live GPS Coordinates status banner */}
-            <div className="rounded-xl border border-border/80 bg-muted/30 px-3 py-2 text-xs flex items-center justify-between">
+            <div className="rounded-xl border border-border/80 bg-muted/30 px-3 py-2 text-xs flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <Compass className="h-3.5 w-3.5 text-primary shrink-0" />
                 <span className="font-mono text-[11px] text-foreground font-medium">
                   {coords.gpsActive && coords.lat != null ? (
-                    `${coords.lat.toFixed(5)}° N, ${coords.lon.toFixed(5)}° E (±${Math.round(coords.accuracy || 15)}m)`
+                    <>
+                      {coords.lat.toFixed(5)}° N, {coords.lon.toFixed(5)}° E (±{Math.round(coords.accuracy || 15)}m)
+                      {coords.accuracy && coords.accuracy > 50 && (
+                        <span className="ml-1 text-[10px] text-muted-foreground font-sans font-normal">
+                          · Browser Network GPS
+                        </span>
+                      )}
+                    </>
                   ) : (
                     <span className="text-muted-foreground">GPS inactive · using district baseline</span>
                   )}
                 </span>
               </div>
-              {coords.gpsActive && (
-                <span className="text-[10px] font-bold text-emerald-600 bg-emerald-500/10 px-1.5 py-0.5 rounded">
-                  Locked
-                </span>
-              )}
+              <div className="flex items-center gap-1.5">
+                {coords.gpsActive ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setShowMap(!showMap)}
+                      className="text-[10px] font-semibold text-primary hover:underline bg-primary/10 px-2 py-0.5 rounded cursor-pointer"
+                    >
+                      {showMap ? "Hide Map" : "Adjust on Map"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCoords({ lat: null, lon: null, accuracy: null, gpsActive: false, isLocating: false });
+                        setLocationText("");
+                      }}
+                      className="text-[10px] font-semibold text-muted-foreground hover:text-destructive hover:bg-destructive/10 px-2 py-0.5 rounded cursor-pointer"
+                    >
+                      Reset
+                    </button>
+                    <span className="text-[10px] font-bold text-emerald-600 bg-emerald-500/10 px-1.5 py-0.5 rounded">
+                      Locked
+                    </span>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setShowMap(!showMap)}
+                    className="text-[10px] font-semibold text-primary hover:underline cursor-pointer"
+                  >
+                    {showMap ? "Hide Map" : "Pick on Map"}
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Interactive Map Pinning */}
