@@ -22,6 +22,8 @@ import {
   Clock,
   ChevronRight,
   Upload,
+  Camera,
+  ShieldAlert,
 } from "lucide-react";
 import { toast } from "sonner";
 import Button from "../../../components/common/Button";
@@ -29,7 +31,8 @@ import PageHeader from "../../../components/common/PageHeader";
 import citizenService from "../../../services/citizenService";
 import aiService from "../../../services/aiService";
 import useAuth from "../../../hooks/useAuth";
-import { resolveImageUrl } from "../../../utils/helpers";
+import { resolveImageUrl, getDirectBackendImageUrl } from "../../../utils/helpers";
+
 
 function normalizeAnalysis(item) {
   if (!item) return null;
@@ -61,7 +64,8 @@ function normalizeAnalysis(item) {
     detectedObjects: pred.detectedObjects || item.detectedObjects || [],
     annotatedImage: pred.annotatedImage || item.annotatedImage || pred.image || item.image || item.images?.[0] || "",
     originalImage: pred.originalImage || item.originalImage || pred.image || item.image || item.images?.[0] || "",
-    imagePreview: item.imagePreview || pred.imagePreview || null,
+    imagePreview: item.imagePreview || pred.imagePreview || item.localBlobUrl || pred.localBlobUrl || null,
+    localBlobUrl: item.localBlobUrl || pred.localBlobUrl || null,
     riskFactors: pred.riskFactors || {
       aiSeverity: pred.aiSeverityScore || item.aiSeverityScore || 65.0,
       aiConfidence: pred.confidence || item.confidence || 88.0,
@@ -97,6 +101,51 @@ function formatDate(dateStr) {
   }
 }
 
+/**
+ * Resilient image component with backoff retry logic to handle newly written files and network timing.
+ */
+function AutoRetryImage({ src, fallbackSrc, alt = "evidence", className = "", placeholder = null }) {
+  const [currentSrc, setCurrentSrc] = useState(src);
+  const [retryCount, setRetryCount] = useState(0);
+  const [hasFailed, setHasFailed] = useState(false);
+
+  useEffect(() => {
+    setCurrentSrc(src);
+    setRetryCount(0);
+    setHasFailed(false);
+  }, [src]);
+
+  const handleError = () => {
+    if (retryCount < 3) {
+      const nextCount = retryCount + 1;
+      setRetryCount(nextCount);
+      setTimeout(() => {
+        const base = (src || "").split("?")[0];
+        if (base) {
+          setCurrentSrc(`${base}?t=${Date.now()}`);
+        }
+      }, 350 * nextCount);
+    } else if (fallbackSrc && currentSrc !== fallbackSrc) {
+      setCurrentSrc(fallbackSrc);
+    } else {
+      setHasFailed(true);
+    }
+  };
+
+  if (hasFailed && placeholder) {
+    return placeholder;
+  }
+
+  return (
+    <img
+      src={currentSrc}
+      alt={alt}
+      className={className}
+      onError={handleError}
+    />
+  );
+}
+
 export default function AIResult() {
   const location = useLocation();
   const navState = location.state || {};
@@ -109,7 +158,8 @@ export default function AIResult() {
   const [selectedMeta, setSelectedMeta] = useState({
     location: navState.location || navState.prediction?.location || "",
     coords: navState.coords || null,
-    imagePreview: navState.imagePreview || null,
+    imagePreview: navState.imagePreview || navState.localBlobUrl || null,
+    localBlobUrl: navState.localBlobUrl || null,
     category: navState.category || "container",
     description: navState.description || "",
   });
@@ -119,6 +169,7 @@ export default function AIResult() {
   const [isSending, setIsSending] = useState(false);
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
   const [dispatchedReport, setDispatchedReport] = useState(null);
+
 
   // Load previous analyses for current logged-in citizen only
   useEffect(() => {
@@ -215,13 +266,15 @@ export default function AIResult() {
   const selectAnalysis = (analysis) => {
     if (!analysis) return;
     setSelectedPrediction(analysis);
-    setSelectedMeta({
+    setSelectedMeta((prev) => ({
       location: analysis.location,
       coords: analysis.coords,
-      imagePreview: analysis.imagePreview,
+      imagePreview: analysis.imagePreview || analysis.localBlobUrl || (prev?.imagePreview || null),
+      localBlobUrl: analysis.localBlobUrl || (prev?.localBlobUrl || null),
       category: analysis.category,
       description: analysis.description,
-    });
+    }));
+
     if (analysis.status || (analysis.reportId && analysis.reportId.startsWith("DG-"))) {
       setDispatchedReport({
         id: analysis.reportId || analysis.id,
@@ -335,13 +388,11 @@ export default function AIResult() {
       ];
   const reportId = prediction.reportId || prediction.id || "N/A";
 
-  const originalPreview =
-    selectedMeta.imagePreview && !selectedMeta.imagePreview.startsWith("blob:")
-      ? selectedMeta.imagePreview
-      : null;
+  const originalPreview = selectedMeta.imagePreview || null;
   const annotatedSrc = prediction.annotatedImage || originalPreview;
   const rawSrc = prediction.originalImage || prediction.image || originalPreview;
   const displayImage = showAnnotated && annotatedSrc ? annotatedSrc : (rawSrc || originalPreview);
+
 
   const riskBadge = getRiskBadge(rfRiskLevel);
   const RiskIcon = riskBadge.icon;
@@ -521,25 +572,31 @@ export default function AIResult() {
                       : "border-border bg-muted/20 hover:border-primary/50 hover:bg-muted/40"
                   }`}
                 >
-                  <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-slate-900/10 border border-border">
+                  <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-slate-900/10 border border-border flex items-center justify-center">
                     {thumb ? (
-                      <img
+                      <AutoRetryImage
                         src={resolveImageUrl(thumb)}
+                        fallbackSrc={
+                          item.localBlobUrl ||
+                          item.imagePreview ||
+                          (item.originalImage ? resolveImageUrl(item.originalImage) : "")
+                        }
                         alt="site"
                         className="h-full w-full object-cover"
-                        onError={(e) => {
-                          const fallback = item.originalImage || item.image;
-                          if (fallback && e.target.src !== resolveImageUrl(fallback)) {
-                            e.target.src = resolveImageUrl(fallback);
-                          } else {
-                            e.target.style.display = "none";
-                          }
-                        }}
+                        placeholder={
+                          <div className="grid h-full w-full place-items-center text-xs text-muted-foreground bg-muted/40">
+                            <Camera className="h-4 w-4 opacity-50" />
+                          </div>
+                        }
                       />
                     ) : (
-                      <div className="grid h-full w-full place-items-center text-xs">🪣</div>
+                      <div className="grid h-full w-full place-items-center text-xs text-muted-foreground bg-muted/40">
+                        <Camera className="h-4 w-4 opacity-50" />
+                      </div>
                     )}
                   </div>
+
+
 
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-1 mb-0.5">
@@ -611,16 +668,25 @@ export default function AIResult() {
 
             <div className="relative flex min-h-[300px] max-h-[420px] items-center justify-center overflow-hidden rounded-xl bg-slate-950/5 border border-border/50">
               {displayImage ? (
-                <img
+                <AutoRetryImage
+                  key={`${displayImage}-${showAnnotated}`}
                   src={resolveImageUrl(displayImage)}
+                  fallbackSrc={
+                    originalPreview ||
+                    (rawSrc ? resolveImageUrl(rawSrc) : "") ||
+                    getDirectBackendImageUrl(displayImage)
+                  }
                   alt="Dengue breeding analysis"
-                  className="max-h-[420px] w-full rounded-xl object-contain"
-                  onError={(e) => {
-                    const fallback = rawSrc ? resolveImageUrl(rawSrc) : "";
-                    if (fallback && e.target.src !== fallback) {
-                      e.target.src = fallback;
-                    }
-                  }}
+                  className="max-h-[420px] w-full rounded-xl object-contain transition-opacity duration-300"
+                  placeholder={
+                    <div className="flex flex-col items-center justify-center p-8 text-center text-sm text-muted-foreground">
+                      <ShieldAlert className="mx-auto mb-2 h-10 w-10 text-amber-500/80" />
+                      <span className="font-semibold text-foreground">Visual Evidence Preview</span>
+                      <p className="mt-1 text-xs text-muted-foreground max-w-sm">
+                        Site: {reportLocation} · Photo safely registered in evidence database.
+                      </p>
+                    </div>
+                  }
                 />
               ) : (
                 <div className="p-8 text-center text-sm text-muted-foreground">
@@ -629,6 +695,8 @@ export default function AIResult() {
                 </div>
               )}
             </div>
+
+
 
             <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
               <span className="flex items-center gap-1">

@@ -27,7 +27,8 @@ import { FormField, Input, Select, Textarea } from "../../../components/common/F
 import phiService from "../../../services/phiService";
 import aiService from "../../../services/aiService";
 import { STATUS_TINT, RISK_TINT } from "../../../utils/constants";
-import { resolveImageUrl } from "../../../utils/helpers";
+import { resolveImageUrl, getDirectBackendImageUrl } from "../../../utils/helpers";
+
 
 const REJECTION_REASONS = [
   { value: "Not a mosquito breeding site", label: "Not a mosquito breeding site" },
@@ -348,13 +349,28 @@ export default function AIPrediction() {
                 alt="Breeding site inspection"
                 className="w-full h-full object-contain"
                 onError={(e) => {
-                  if (originalImageUrl && e.target.src !== resolveImageUrl(originalImageUrl)) {
-                    e.target.src = resolveImageUrl(originalImageUrl);
+                  const retryCount = Number(e.target.dataset.retries || "0");
+                  if (retryCount < 3) {
+                    e.target.dataset.retries = String(retryCount + 1);
+                    setTimeout(() => {
+                      const base = (resolveImageUrl(currentDisplayImage) || "").split("?")[0];
+                      if (base) {
+                        e.target.src = `${base}?t=${Date.now()}`;
+                      }
+                    }, 350 * (retryCount + 1));
+                    return;
+                  }
+                  const rawResolved = originalImageUrl ? resolveImageUrl(originalImageUrl) : "";
+                  if (rawResolved && e.target.src !== rawResolved && !e.target.dataset.triedRaw) {
+                    e.target.dataset.triedRaw = "true";
+                    e.target.src = rawResolved;
                   } else {
                     e.target.style.display = "none";
                     if (e.target.nextSibling) e.target.nextSibling.style.display = "flex";
                   }
                 }}
+
+
               />
             ) : null}
 
