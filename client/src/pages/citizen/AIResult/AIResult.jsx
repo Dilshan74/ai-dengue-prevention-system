@@ -410,6 +410,8 @@ export default function AIResult() {
       ].filter((img) => Boolean(img) && !img.startsWith("blob:"));
 
       const payload = {
+        citizenName: user?.name || "Citizen Demo",
+        citizenEmail: user?.email || "citizen@dengueguard.lk",
         location: reportLocation,
         address: reportLocation,
         description:
