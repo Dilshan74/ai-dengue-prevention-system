@@ -180,8 +180,21 @@ async def predict(
     # Generate annotated image with bounding boxes drawn
     annotated_filename = f"annotated-{filename}"
     annotated_save_path = UPLOADS_DIR / annotated_filename
-    plotted_img = result.plot()  # BGR numpy array
-    cv2.imwrite(str(annotated_save_path), plotted_img)
+    try:
+        plotted_img = result.plot()  # BGR numpy array
+        # Use cv2.imencode + open() for robust Windows path handling with spaces/unicode
+        is_success, buffer = cv2.imencode(".jpg", plotted_img)
+        if is_success:
+            with open(annotated_save_path, "wb") as f:
+                f.write(buffer.tobytes())
+                f.flush()
+                os.fsync(f.fileno())
+        else:
+            cv2.imwrite(str(annotated_save_path), plotted_img)
+    except Exception as e:
+        print(f"[AI Service] Error saving annotated image: {e}")
+        annotated_filename = filename  # Fallback to original image if annotation saving fails
+
 
     # Determine risk assessment
     labels_found = [obj["label"] for obj in detected_objects]
