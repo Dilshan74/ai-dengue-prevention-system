@@ -83,6 +83,7 @@ export const getReport = asyncHandler(async (req, res) => {
   if (report.citizenId) {
     const citizen = await User.findOne({ id: report.citizenId }).lean();
     if (citizen) {
+      report.citizenName = citizen.name || report.citizenName;
       report.citizenMobile = citizen.mobile || "";
       report.citizenEmail = citizen.email || "";
       if (!report.address && citizen.address) {
