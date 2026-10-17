@@ -235,7 +235,26 @@ async def predict(
             print(f"[AI Service] RF prediction error: {err}")
 
     # Synchronize final composite risk level with the ML model
-    final_risk = rf_level if rf_score is not None else initial_risk
+    if not detected_objects:
+        # Physical inspection confirmed 0 breeding containers:
+        # A clean site must strictly register as Low Risk.
+        final_risk = "Low"
+        rf_level = "Low"
+        if rf_score is not None:
+            # Scale environmental risk within the Low Risk bracket (0 - 39.9)
+            rf_score = round(min(rf_score * 0.35, 24.0), 1)
+        else:
+            rf_score = 15.0
+    else:
+        # When breeding hazards are detected, sync with ML prediction
+        if initial_risk == "High" and rf_level == "Low":
+            # Safety guarantee: never downgrade a detected high-hazard site (e.g. tire) to Low
+            final_risk = "High"
+            rf_level = "High"
+            if rf_score is not None and rf_score < 70.0:
+                rf_score = max(rf_score, 72.0)
+        else:
+            final_risk = rf_level if rf_score is not None else initial_risk
 
     return {
         "label": primary_label,

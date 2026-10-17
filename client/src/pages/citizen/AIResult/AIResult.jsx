@@ -809,7 +809,15 @@ export default function AIResult() {
               <Info className="h-4 w-4 shrink-0 text-primary mt-0.5" />
               <div>
                 <strong className="text-foreground">How the ML Model works: </strong>
-                The image is first classified using YOLOv8 to detect breeding containers. Its visual severity ({factors.aiSeverity}) and confidence ({factors.aiConfidence}%) are combined with local rainfall ({factors.rainfallMm}mm) and district transmission history ({factors.ndcuCases} cases) to compute the final multi-factor risk score.
+                {factors.aiSeverity === 0 ? (
+                  <>
+                    Zero mosquito breeding containers were detected in this image. The site is verified as <strong className="text-emerald-600 font-semibold">Low Risk / Clean</strong>. Regional rainfall ({factors.rainfallMm}mm) and district case surveillance ({factors.ndcuCases} cases) are tracked for ambient environmental awareness.
+                  </>
+                ) : (
+                  <>
+                    The image is first classified using YOLOv8 to detect breeding containers. Its visual severity ({factors.aiSeverity}) and confidence ({factors.aiConfidence}%) are combined with local rainfall ({factors.rainfallMm}mm) and district transmission history ({factors.ndcuCases} cases) to compute the final multi-factor risk score.
+                  </>
+                )}
               </div>
             </div>
           </div>
