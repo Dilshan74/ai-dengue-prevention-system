@@ -45,7 +45,7 @@ export default function Login() {
       setLoading(true);
       const data = await authService.login({ email: values.email, password: values.password, role });
       logout();
-      login({ email: data.email, name: data.name, role: data.role ?? role, token: data.token });
+      login({ id: data.id, email: data.email, name: data.name, role: data.role ?? role, token: data.token });
       toast.success(`Welcome back, ${data.name}!`);
       navigate(ROLE_HOME[data.role ?? role]);
     } catch (err) {
