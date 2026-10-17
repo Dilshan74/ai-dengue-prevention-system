@@ -26,7 +26,19 @@ app.use(express.urlencoded({ extended: true }));
 if (env.nodeEnv !== "test") app.use(morgan("dev"));
 
 // Serve uploaded images (report photos, inspection photos, AI predict input)
-app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
+app.use(
+  "/uploads",
+  (req, res, next) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS");
+    res.header("Access-Control-Allow-Headers", "*");
+    res.header("Cross-Origin-Resource-Policy", "cross-origin");
+    if (req.method === "OPTIONS") return res.sendStatus(204);
+    next();
+  },
+  express.static(path.join(__dirname, "..", "uploads"))
+);
+
 
 app.get("/", (req, res) => res.json({ message: "Welcome to DengueGuard AI API" }));
 app.get("/api/health", (req, res) => res.json({ status: "ok", time: new Date().toISOString() }));

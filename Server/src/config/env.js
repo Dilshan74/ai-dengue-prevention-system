@@ -7,6 +7,12 @@ const corsOrigin = (process.env.CORS_ORIGIN || "http://localhost:5173")
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
+
+if (nodeEnv !== "production") {
+  if (!corsOrigin.includes("http://127.0.0.1:5173")) corsOrigin.push("http://127.0.0.1:5173");
+  if (!corsOrigin.includes("http://localhost:5173")) corsOrigin.push("http://localhost:5173");
+}
+
 const requiredProductionVariables = ["JWT_SECRET", "MONGO_URI", "CORS_ORIGIN"];
 const missingProductionVariables =
   nodeEnv === "production"
