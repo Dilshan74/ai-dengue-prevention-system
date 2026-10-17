@@ -64,6 +64,14 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     setUser(getStoredUser());
     setLoading(false);
+
+    const onStorage = (e) => {
+      if (e.key === STORAGE_KEYS.user || e.key === STORAGE_KEYS.token) {
+        setUser(getStoredUser());
+      }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
   }, []);
 
   const login = useCallback(({ email, role = ROLES.CITIZEN, name, token, area, ...rest }) => {
